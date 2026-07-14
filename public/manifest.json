@@ -1,0 +1,18 @@
+{
+  "name": "SCB 1st Grade 2026",
+  "short_name": "1st Grade",
+  "description": "Weekly reminders, calendar, and room chat for our classroom family.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#f5f6fb",
+  "theme_color": "#4a63f2",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

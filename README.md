@@ -1,0 +1,111 @@
+# SCB 1st Grade 2026 — Classroom Parent App
+
+A mobile-first web app (installable to your phone's home screen, no app
+store needed) for our classroom family. Built with Next.js 14, Supabase,
+and Claude.
+
+**What's in it:**
+- **Home** — this week's quick reminders + upcoming events at a glance
+- **Calendar** — the full classroom calendar
+- **Room chat** — a live group chat for all classroom parents
+- **Weekly email digest** — everyone gets an email every week with the
+  reminders and upcoming events, even if they never open the app
+- **Admin** — the room parent gets an admin screen to post reminders and
+  events by hand, *or* just type what she wants in plain English to an
+  embedded Claude assistant ("remind everyone about picture day Friday")
+  and it makes the update for her
+
+## How membership works
+
+There's no public sign-up. Two invite codes (that you make up) gate
+joining:
+
+- **Parent code** — share this with classroom families. Anyone with it can
+  create an account and see reminders/calendar/chat.
+- **Admin code** — gives whoever signs up with it the room-parent admin
+  role (access to `/admin`, including the AI assistant). Keep this one
+  private — usually you'll use it yourself to create the first account.
+
+Codes are plain environment variables (`CLASSROOM_PARENT_INVITE_CODE`,
+`CLASSROOM_ADMIN_INVITE_CODE`), not stored in the database, so rotating
+them just means updating an env var and redeploying.
+
+## One-time setup
+
+### 1. Supabase (data, auth, chat)
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the SQL Editor, run `supabase/schema.sql` from this repo — it
+   creates the `profiles`, `events`, `reminders`, and `messages` tables,
+   locks them down with Row Level Security, and turns on realtime for chat.
+3. From **Project Settings → API**, copy the Project URL, `anon` public
+   key, and `service_role` secret key into your env vars (see
+   `.env.example`).
+
+### 2. Anthropic (the AI assistant)
+
+Create an API key at [console.anthropic.com](https://console.anthropic.com)
+and set `ANTHROPIC_API_KEY`. Usage is billed per request to your Anthropic
+account — for a classroom-sized assistant used a few times a week this
+costs pennies, but keep an eye on it. If this key is left unset, the rest
+of the app still works fine — the admin just uses the plain forms instead
+of the chat assistant.
+
+### 3. Resend (weekly reminder emails)
+
+1. Create a free account at [resend.com](https://resend.com).
+2. Verify a sending domain (or use their test domain while developing).
+3. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
+
+### 4. Local development
+
+```bash
+npm install
+cp .env.example .env.local   # fill in the values above
+npm run dev
+```
+
+Visit `/signup` and create the first account using your admin invite code.
+
+## Deploying (Vercel)
+
+1. Push this repo to GitHub (already done if you're reading this here).
+2. In Vercel, **Add New → Project**, import this repo. Framework preset:
+   Next.js (auto-detected).
+3. Add all the environment variables from `.env.example` in
+   **Project Settings → Environment Variables**, then deploy.
+4. Vercel Cron (configured in `vercel.json`) will call
+   `/api/cron/weekly-digest` every **Sunday at 13:00 UTC** — adjust the
+   `schedule` in `vercel.json` for your timezone/day of choice
+   ([crontab.guru](https://crontab.guru) helps). Vercel automatically sends
+   `Authorization: Bearer $CRON_SECRET` on cron requests once you've set
+   `CRON_SECRET`, which the route checks.
+5. Once deployed, visit the site on a phone and use the browser's
+   **"Add to Home Screen"** option (Safari: Share → Add to Home Screen;
+   Chrome: menu → Install app) so it opens full-screen like a native app.
+
+## Structure
+
+- `app/(auth)/login`, `app/(auth)/signup` — sign in / join with invite code
+- `app/home` — weekly reminders + upcoming events dashboard
+- `app/calendar` — full event list, grouped by month
+- `app/chat` — realtime room chat (Supabase Realtime)
+- `app/admin` — room-parent-only: reminder/event forms + the AI assistant
+- `app/api/auth/signup` — validates invite code, creates the account
+- `app/api/reminders`, `app/api/events` — admin-only create/delete
+- `app/api/admin/assistant` — Claude tool-use loop that can create, list,
+  and delete reminders/events on the admin's behalf (see `lib/assistantTools.js`
+  for exactly what it's allowed to touch — nothing outside those two tables)
+- `app/api/cron/weekly-digest` — builds and sends the weekly email
+- `supabase/schema.sql` — database schema + Row Level Security policies
+- `middleware.js` — redirects signed-out visitors to `/login`
+
+## Notes before you invite families
+
+- The app icon (`public/icons/icon.svg`) is a placeholder — swap in real
+  artwork before sharing widely.
+- Chat has no moderation tooling yet (no delete/report) — it's a small
+  trusted group, but keep that in mind.
+- The admin assistant can only read/write the `reminders` and `events`
+  tables — it has no access to parent accounts, chat messages, or anything
+  else in the database.

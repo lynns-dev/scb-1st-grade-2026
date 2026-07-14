@@ -1,0 +1,128 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@/lib/useProfile";
+import AppShell from "@/components/AppShell";
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day;
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export default function HomePage() {
+  const { profile } = useProfile();
+  const [reminders, setReminders] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const supabase = createClient();
+
+    async function load() {
+      const weekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
+
+      const [{ data: remindersData }, { data: eventsData }] = await Promise.all([
+        supabase
+          .from("reminders")
+          .select("id, title, body, week_of, created_at")
+          .gte("week_of", weekStart)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("events")
+          .select("id, title, start_at, all_day")
+          .gte("start_at", new Date().toISOString())
+          .order("start_at", { ascending: true })
+          .limit(3),
+      ]);
+
+      if (active) {
+        setReminders(remindersData || []);
+        setEvents(eventsData || []);
+        setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <AppShell title="This week">
+      <p className="mb-5 text-sm text-slate-500">
+        Welcome{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
+        {profile?.child_name ? ` — ${profile.child_name}'s classroom` : ""}
+      </p>
+
+      <section className="mb-6">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Weekly reminders
+        </h2>
+        {loading ? (
+          <p className="text-sm text-slate-400">Loading…</p>
+        ) : reminders.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+            No reminders posted yet this week.
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {reminders.map((r) => (
+              <li key={r.id} className="rounded-2xl bg-white p-4 shadow-card">
+                <p className="font-semibold text-slate-900">{r.title}</p>
+                {r.body && <p className="mt-1 text-sm text-slate-500">{r.body}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+            Coming up
+          </h2>
+          <Link href="/calendar" className="text-xs font-medium text-brand-600">
+            View calendar
+          </Link>
+        </div>
+        {loading ? (
+          <p className="text-sm text-slate-400">Loading…</p>
+        ) : events.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+            Nothing on the calendar yet.
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {events.map((e) => (
+              <li
+                key={e.id}
+                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-card"
+              >
+                <span className="font-medium text-slate-900">{e.title}</span>
+                <span className="text-xs text-slate-400">
+                  {e.all_day ? formatDate(e.start_at) : formatDate(e.start_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </AppShell>
+  );
+}
