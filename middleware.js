@@ -4,6 +4,15 @@ import { NextResponse } from "next/server";
 const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/signup", "/api/cron"];
 
 export async function middleware(request) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return new NextResponse(
+      "This app isn't configured yet — NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY " +
+        "need to be set in the deployment's environment variables (see README.md). " +
+        "After adding them, redeploy for the change to take effect.",
+      { status: 500, headers: { "content-type": "text/plain" } }
+    );
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
