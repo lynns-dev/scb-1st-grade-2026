@@ -30,17 +30,27 @@ const ICONS = {
   ),
 };
 
+// Each tab gets its own color, Brightwheel-style, instead of one uniform
+// brand color — makes the row easier to scan at a glance.
+const COLORS = {
+  home: { fg: "#2563eb", bg: "#dbeafe" }, // blue
+  calendar: { fg: "#0d9488", bg: "#ccfbf1" }, // teal
+  chat: { fg: "#db2777", bg: "#fce7f3" }, // pink
+  directory: { fg: "#7c3aed", bg: "#ede9fe" }, // violet
+  admin: { fg: "#d97706", bg: "#fef3c7" }, // amber
+};
+
 const GRID_COLS = { 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
 
 function Icon({ name }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="24"
-      height="24"
+      width="22"
+      height="22"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -68,16 +78,21 @@ export default function BottomNav({ isAdmin }) {
       <div className={`mx-auto grid max-w-sm ${GRID_COLS[items.length] || "grid-cols-4"}`}>
         {items.map((item) => {
           const active = pathname?.startsWith(item.href);
+          const color = COLORS[item.icon];
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium ${
-                active ? "text-brand-600" : "text-slate-400"
-              }`}
+              className="flex flex-col items-center gap-1 py-2.5 text-[11px]"
+              style={{ color: active ? color.fg : "#94a3b8" }}
             >
-              <Icon name={item.icon} />
-              {item.label}
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                style={{ backgroundColor: active ? color.bg : "transparent" }}
+              >
+                <Icon name={item.icon} />
+              </span>
+              <span className={active ? "font-semibold" : "font-medium"}>{item.label}</span>
             </Link>
           );
         })}
