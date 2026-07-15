@@ -21,13 +21,10 @@ export default function ChatPage() {
   const bottomRef = useRef(null);
   const supabaseRef = useRef(null);
 
-  if (!supabaseRef.current) {
-    supabaseRef.current = createClient();
-  }
-
   useEffect(() => {
     let active = true;
-    const supabase = supabaseRef.current;
+    const supabase = createClient();
+    supabaseRef.current = supabase;
 
     async function load() {
       const { data } = await supabase

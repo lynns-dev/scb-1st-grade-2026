@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [form, setForm] = useState({
     fullName: "",
     childName: "",
@@ -40,6 +39,7 @@ export default function SignupPage() {
       return;
     }
 
+    const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
