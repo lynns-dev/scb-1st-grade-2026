@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildDigestEmail } from "@/lib/digestEmail";
+import { withApiError } from "@/lib/apiError";
 
 function startOfWeek(date) {
   const d = new Date(date);
@@ -15,7 +16,7 @@ function startOfWeek(date) {
 // sends `Authorization: Bearer $CRON_SECRET` on cron-triggered requests when
 // CRON_SECRET is set, so we just check that — this also lets you trigger a
 // digest manually (e.g. with curl) using the same secret while testing.
-export async function GET(request) {
+export const GET = withApiError(async (request) => {
   const authHeader = request.headers.get("authorization");
   if (
     !process.env.CRON_SECRET ||
@@ -88,4 +89,4 @@ export async function GET(request) {
   }
 
   return NextResponse.json({ ok: true, sent, total: recipients.length });
-}
+});

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withApiError } from "@/lib/apiError";
 
-export async function POST(request) {
+export const POST = withApiError(async (request) => {
   const auth = await requireAdmin();
   if (auth.error) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -32,4 +33,4 @@ export async function POST(request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ event: data });
-}
+});

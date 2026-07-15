@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withApiError } from "@/lib/apiError";
 
 // Anyone can call this route, but it only ever creates an account when the
 // supplied invite code matches one of the two codes the room admin shares
 // with classroom families (a plain parent code, and a separate admin code
 // for the room parent). No public signup without a valid code.
-export async function POST(request) {
+export const POST = withApiError(async (request) => {
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -62,4 +63,4 @@ export async function POST(request) {
   }
 
   return NextResponse.json({ ok: true, role });
-}
+});

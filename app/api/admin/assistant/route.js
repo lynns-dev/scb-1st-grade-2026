@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { tools, buildExecutor } from "@/lib/assistantTools";
+import { withApiError } from "@/lib/apiError";
 
 const MODEL = "claude-sonnet-5";
 const MAX_TURNS = 6;
@@ -20,7 +21,7 @@ before deleting anything. Keep reminders short and parent-friendly. You only man
 reminders and events — you have no access to parent accounts, chat messages, or
 anything outside this classroom app.`;
 
-export async function POST(request) {
+export const POST = withApiError(async (request) => {
   const auth = await requireAdmin();
   if (auth.error) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -89,4 +90,4 @@ export async function POST(request) {
     actions,
     history: messages,
   });
-}
+});
