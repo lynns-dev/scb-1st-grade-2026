@@ -24,9 +24,20 @@ export default function ChatRoomPage({ params }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
+    if (!profile?.id) return;
     let active = true;
     const supabase = createClient();
     setLoading(true);
+
+    function markRead() {
+      supabase
+        .from("chat_read_state")
+        .upsert(
+          { user_id: profile.id, room_id: roomId, last_read_at: new Date().toISOString() },
+          { onConflict: "user_id,room_id" }
+        )
+        .then(() => {});
+    }
 
     async function load() {
       const [{ data: room }, { data: msgs }] = await Promise.all([
@@ -43,6 +54,7 @@ export default function ChatRoomPage({ params }) {
         setRoomName(room?.is_default ? "Main Chat" : room?.name || "Chat");
         setMessages(msgs || []);
         setLoading(false);
+        markRead();
       }
     }
 
@@ -61,6 +73,7 @@ export default function ChatRoomPage({ params }) {
             .single();
 
           setMessages((prev) => [...prev, { ...payload.new, profiles: data || null }]);
+          if (payload.new.user_id !== profile.id) markRead();
         }
       )
       .subscribe();
@@ -69,7 +82,7 @@ export default function ChatRoomPage({ params }) {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [roomId]);
+  }, [roomId, profile?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

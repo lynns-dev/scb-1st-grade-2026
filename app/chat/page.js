@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
+import { useUnreadCounts } from "@/lib/useUnreadCounts";
 import AppShell from "@/components/AppShell";
 
 function NewRoomForm({ parents, onCreated, onCancel }) {
@@ -89,6 +90,7 @@ function NewRoomForm({ parents, onCreated, onCancel }) {
 
 export default function ChatListPage() {
   const { profile } = useProfile();
+  const { counts } = useUnreadCounts();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewRoom, setShowNewRoom] = useState(false);
@@ -146,24 +148,34 @@ export default function ChatListPage() {
         <p className="text-sm text-slate-400">Loading…</p>
       ) : (
         <ul className="space-y-2">
-          {rooms.map((r) => (
-            <li key={r.id}>
-              <Link
-                href={`/chat/${r.id}`}
-                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-card"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-pink-100 text-lg text-pink-600">
-                    💬
-                  </span>
-                  <span className="font-semibold text-slate-900">
-                    {r.is_default ? "Main Chat" : r.name}
-                  </span>
-                </div>
-                <span className="text-slate-300">›</span>
-              </Link>
-            </li>
-          ))}
+          {rooms.map((r) => {
+            const unread = counts[r.id] || 0;
+            return (
+              <li key={r.id}>
+                <Link
+                  href={`/chat/${r.id}`}
+                  className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-card"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-pink-100 text-lg text-pink-600">
+                      💬
+                    </span>
+                    <span className="font-semibold text-slate-900">
+                      {r.is_default ? "Main Chat" : r.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {unread > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1.5 text-[11px] font-semibold text-white">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    )}
+                    <span className="text-slate-300">›</span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </AppShell>

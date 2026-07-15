@@ -59,7 +59,7 @@ function Icon({ name }) {
   );
 }
 
-export default function BottomNav({ isAdmin }) {
+export default function BottomNav({ isAdmin, unreadCount = 0 }) {
   const pathname = usePathname();
 
   const items = [
@@ -86,11 +86,18 @@ export default function BottomNav({ isAdmin }) {
               className="flex flex-col items-center gap-1 py-2.5 text-[11px]"
               style={{ color: active ? color.fg : "#94a3b8" }}
             >
-              <span
-                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-                style={{ backgroundColor: active ? color.bg : "transparent" }}
-              >
-                <Icon name={item.icon} />
+              <span className="relative flex h-8 w-8 items-center justify-center">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  style={{ backgroundColor: active ? color.bg : "transparent" }}
+                >
+                  <Icon name={item.icon} />
+                </span>
+                {item.icon === "chat" && unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-500 px-1 text-[9px] font-bold text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </span>
               <span className={active ? "font-semibold" : "font-medium"}>{item.label}</span>
             </Link>

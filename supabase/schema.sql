@@ -13,12 +13,14 @@ create table if not exists profiles (
   child_name text,
   phone text,
   avatar_url text,
+  child_avatar_url text,
   role text not null default 'parent' check (role in ('parent', 'admin')),
   created_at timestamptz not null default now()
 );
 
 alter table profiles add column if not exists phone text;
 alter table profiles add column if not exists avatar_url text;
+alter table profiles add column if not exists child_avatar_url text;
 
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
@@ -112,6 +114,15 @@ update messages set room_id = (select id from chat_rooms where is_default limit 
 
 alter table messages alter column room_id set not null;
 
+-- Tracks the last time each parent opened each room, so unread counts can
+-- be computed as "messages in this room newer than my last_read_at".
+create table if not exists chat_read_state (
+  user_id uuid not null references profiles (id) on delete cascade,
+  room_id uuid not null references chat_rooms (id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (user_id, room_id)
+);
+
 create index if not exists events_start_at_idx on events (start_at);
 create index if not exists reminders_week_of_idx on reminders (week_of);
 create index if not exists messages_room_created_at_idx on messages (room_id, created_at);
@@ -132,6 +143,7 @@ alter table reminders enable row level security;
 alter table messages enable row level security;
 alter table chat_rooms enable row level security;
 alter table chat_room_members enable row level security;
+alter table chat_read_state enable row level security;
 
 drop policy if exists "profiles readable by classroom members" on profiles;
 create policy "profiles readable by classroom members" on profiles
@@ -170,6 +182,14 @@ create policy "members can see their rooms" on chat_rooms
 drop policy if exists "members can see their own membership rows" on chat_room_members;
 create policy "members can see their own membership rows" on chat_room_members
   for select to authenticated using (user_id = auth.uid());
+
+-- Each parent marks their own rooms read directly from the client (no
+-- server route needed — it's just "I looked at this", nothing sensitive).
+drop policy if exists "users manage their own read state" on chat_read_state;
+create policy "users manage their own read state" on chat_read_state
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
 
 drop policy if exists "messages readable by classroom members" on messages;
 drop policy if exists "messages readable by room members" on messages;

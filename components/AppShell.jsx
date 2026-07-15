@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
+import { useUnreadCounts } from "@/lib/useUnreadCounts";
 import BottomNav from "./BottomNav";
 import InstallPrompt from "./InstallPrompt";
 
 export default function AppShell({ title, backHref, children }) {
   const router = useRouter();
   const { profile } = useProfile();
+  const { total: unreadTotal } = useUnreadCounts();
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -47,7 +49,7 @@ export default function AppShell({ title, backHref, children }) {
         {children}
       </main>
 
-      <BottomNav isAdmin={profile?.role === "admin"} />
+      <BottomNav isAdmin={profile?.role === "admin"} unreadCount={unreadTotal} />
     </div>
   );
 }

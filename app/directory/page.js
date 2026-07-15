@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
-import { uploadAvatar } from "@/lib/uploadFile";
+import { uploadAvatar, uploadChildPhoto } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
 import NotificationsToggle from "@/components/NotificationsToggle";
@@ -13,8 +13,10 @@ function EditMyInfo({ profile, onSaved }) {
   const [phone, setPhone] = useState(profile.phone || "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingChild, setUploadingChild] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+  const childFileInputRef = useRef(null);
 
   async function handleAvatarPick(e) {
     const file = e.target.files?.[0];
@@ -38,6 +40,31 @@ function EditMyInfo({ profile, onSaved }) {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleChildPhotoPick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setUploadingChild(true);
+
+    try {
+      const supabase = createClient();
+      const publicUrl = await uploadChildPhoto(supabase, profile.id, file);
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childAvatarUrl: publicUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      onSaved(data.profile);
+    } catch (err) {
+      setError(err.message || "Couldn't upload that photo.");
+    } finally {
+      setUploadingChild(false);
+      if (childFileInputRef.current) childFileInputRef.current.value = "";
     }
   }
 
@@ -80,6 +107,28 @@ function EditMyInfo({ profile, onSaved }) {
             accept="image/*"
             className="hidden"
             onChange={handleAvatarPick}
+          />
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-center gap-3 border-t border-slate-100 pt-3">
+        <Avatar src={profile.child_avatar_url} name={profile.child_name} size={56} />
+        <div>
+          <p className="text-xs text-slate-400">Shown on the home screen</p>
+          <button
+            type="button"
+            onClick={() => childFileInputRef.current?.click()}
+            disabled={uploadingChild}
+            className="text-sm font-medium text-brand-600 disabled:opacity-50"
+          >
+            {uploadingChild ? "Uploading…" : "Change child's photo"}
+          </button>
+          <input
+            ref={childFileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleChildPhotoPick}
           />
         </div>
       </div>

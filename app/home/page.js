@@ -7,6 +7,7 @@ import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { startOfWeek } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
+import Avatar from "@/components/Avatar";
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -58,10 +59,21 @@ export default function HomePage() {
 
   return (
     <AppShell title="This week">
-      <p className="mb-5 text-sm text-slate-500">
-        Welcome{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-        {profile?.child_name ? ` — ${profile.child_name}'s classroom` : ""}
-      </p>
+      {profile?.child_name && (
+        <div className="mb-6 flex flex-col items-center text-center">
+          <Avatar src={profile.child_avatar_url} name={profile.child_name} size={96} />
+          <p className="mt-3 text-xl font-bold text-slate-900">{profile.child_name}</p>
+          <p className="text-sm text-slate-500">
+            Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
+          </p>
+        </div>
+      )}
+
+      {!profile?.child_name && (
+        <p className="mb-5 text-sm text-slate-500">
+          Welcome{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
+        </p>
+      )}
 
       <section className="mb-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">

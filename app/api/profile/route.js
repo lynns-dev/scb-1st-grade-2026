@@ -22,6 +22,7 @@ export const PATCH = withApiError(async (request) => {
   if (typeof body.phone === "string") updates.phone = body.phone.trim() || null;
   if (typeof body.childName === "string") updates.child_name = body.childName.trim() || null;
   if (typeof body.avatarUrl === "string") updates.avatar_url = body.avatarUrl.trim() || null;
+  if (typeof body.childAvatarUrl === "string") updates.child_avatar_url = body.childAvatarUrl.trim() || null;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

@@ -141,6 +141,9 @@ Visit `/signup` and create the first account using your admin invite code.
   home screen (native prompt on Android/Chrome, instructions on iOS)
 - `supabase/schema.sql` — database schema + Row Level Security policies +
   Storage bucket setup
+- `supabase/seed-sample-events.sql` — optional, run-once: a handful of
+  placeholder calendar events so things aren't empty while testing;
+  deletable later from the Admin tab like any other event
 - `middleware.js` — redirects signed-out visitors to `/login` for pages,
   and returns a JSON 401 (not an HTML redirect) for API calls
 
