@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import BottomNav from "./BottomNav";
+import InstallPrompt from "./InstallPrompt";
 
 export default function AppShell({ title, children }) {
   const router = useRouter();
@@ -30,7 +31,10 @@ export default function AppShell({ title, children }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-sm px-5 py-5">{children}</main>
+      <main className="mx-auto max-w-sm px-5 py-5">
+        <InstallPrompt />
+        {children}
+      </main>
 
       <BottomNav isAdmin={profile?.role === "admin"} />
     </div>

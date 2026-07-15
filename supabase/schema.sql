@@ -25,6 +25,7 @@ create table if not exists events (
   title text not null,
   description text,
   location text,
+  image_url text,
   event_type text not null default 'general' check (event_type in ('general', 'birthday')),
   start_at timestamptz not null,
   end_at timestamptz,
@@ -34,6 +35,7 @@ create table if not exists events (
 );
 
 alter table events add column if not exists location text;
+alter table events add column if not exists image_url text;
 alter table events add column if not exists event_type text not null default 'general';
 do $$
 begin
@@ -53,6 +55,23 @@ create table if not exists reminders (
   created_by uuid references profiles (id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+-- Web Push subscriptions, one row per device a parent has enabled
+-- notifications on. Only ever read/written server-side with the service
+-- role (see lib/pushNotify.js and app/api/push/subscribe) — no client RLS
+-- write policy is defined, so RLS is enabled purely to block anon/
+-- authenticated access by default.
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles (id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists push_subscriptions_user_idx on push_subscriptions (user_id);
+alter table push_subscriptions enable row level security;
 
 -- Chat rooms. There's always exactly one "default" room every classroom
 -- member can see (the general room chat); admins can additionally create
@@ -220,3 +239,27 @@ drop policy if exists "users can delete their own avatar" on storage.objects;
 create policy "users can delete their own avatar" on storage.objects
   for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Storage (birthday invite images) ------------------------------------------
+insert into storage.buckets (id, name, public)
+  values ('event-images', 'event-images', true)
+  on conflict (id) do nothing;
+
+drop policy if exists "event images are publicly accessible" on storage.objects;
+create policy "event images are publicly accessible" on storage.objects
+  for select using (bucket_id = 'event-images');
+
+drop policy if exists "users can upload their own event images" on storage.objects;
+create policy "users can upload their own event images" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'event-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "users can update their own event images" on storage.objects;
+create policy "users can update their own event images" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'event-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "users can delete their own event images" on storage.objects;
+create policy "users can delete their own event images" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'event-images' and (storage.foldername(name))[1] = auth.uid()::text);

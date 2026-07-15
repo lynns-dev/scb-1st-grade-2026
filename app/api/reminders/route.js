@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withApiError } from "@/lib/apiError";
+import { notifyNewReminder } from "@/lib/notifyAllParents";
 
 export const POST = withApiError(async (request) => {
   const auth = await requireAdmin();
@@ -27,5 +28,8 @@ export const POST = withApiError(async (request) => {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await notifyNewReminder(admin, { title: data.title, excludeUserId: auth.profile.id });
+
   return NextResponse.json({ reminder: data });
 });

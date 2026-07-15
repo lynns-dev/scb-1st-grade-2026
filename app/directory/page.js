@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
-import { uploadAvatar } from "@/lib/uploadAvatar";
+import { uploadAvatar } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
+import NotificationsToggle from "@/components/NotificationsToggle";
 
 function EditMyInfo({ profile, onSaved }) {
   const [childName, setChildName] = useState(profile.child_name || "");
@@ -134,6 +135,8 @@ export default function DirectoryPage() {
       <p className="mb-4 text-sm text-slate-500">
         Contact info for reaching out about birthday parties, playdates, and everything else.
       </p>
+
+      <NotificationsToggle />
 
       {profile && (
         <EditMyInfo

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
+import { uploadEventImage } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 
 function groupByMonth(events) {
@@ -21,11 +22,22 @@ function groupByMonth(events) {
 
 function BirthdayForm({ profile, onCreated, onCancel }) {
   const [title, setTitle] = useState(profile.child_name ? `${profile.child_name}'s Birthday` : "");
-  const [startAt, setStartAt] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
+
+  function handleImagePick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,11 +45,28 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
     setError("");
 
     const supabase = createClient();
+
+    let imageUrl = null;
+    if (imageFile) {
+      try {
+        imageUrl = await uploadEventImage(supabase, profile.id, imageFile);
+      } catch (uploadError) {
+        setSaving(false);
+        setError(uploadError.message || "Couldn't upload that image.");
+        return;
+      }
+    }
+
+    const allDay = !time;
+    const startAt = time ? new Date(`${date}T${time}`) : new Date(`${date}T00:00`);
+
     const { error: insertError } = await supabase.from("events").insert({
       title,
       description: description || null,
       location: location || null,
-      start_at: new Date(startAt).toISOString(),
+      image_url: imageUrl,
+      start_at: startAt.toISOString(),
+      all_day: allDay,
       event_type: "birthday",
       created_by: profile.id,
     });
@@ -63,13 +92,22 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
         onChange={(e) => setTitle(e.target.value)}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
       />
-      <input
-        required
-        type="datetime-local"
-        value={startAt}
-        onChange={(e) => setStartAt(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-      />
+      <div className="flex gap-2">
+        <input
+          required
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-1/2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          placeholder="Time (optional)"
+          className="w-1/2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+        />
+      </div>
       <input
         placeholder="Location (optional)"
         value={location}
@@ -83,6 +121,32 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
         rows={2}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
       />
+
+      <div>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="text-sm font-medium text-brand-600"
+        >
+          {imagePreview ? "Change invitation image" : "+ Add an invitation image (optional)"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImagePick}
+        />
+        {imagePreview && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imagePreview}
+            alt="Invitation preview"
+            className="mt-2 max-h-40 w-full rounded-xl object-cover"
+          />
+        )}
+      </div>
+
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -114,7 +178,7 @@ export default function CalendarPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from("events")
-      .select("id, title, description, location, event_type, start_at, end_at, all_day, created_by, profiles ( full_name )")
+      .select("id, title, description, location, image_url, event_type, start_at, end_at, all_day, created_by, profiles ( full_name )")
       .gte("start_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order("start_at", { ascending: true });
 
@@ -201,6 +265,14 @@ export default function CalendarPage() {
                       )}
                       {e.description && (
                         <p className="mt-1 text-sm text-slate-500">{e.description}</p>
+                      )}
+                      {e.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={e.image_url}
+                          alt={`${e.title} invitation`}
+                          className="mt-2 max-h-48 w-full rounded-xl object-cover"
+                        />
                       )}
                       <div className="mt-2 flex items-center gap-3">
                         <a

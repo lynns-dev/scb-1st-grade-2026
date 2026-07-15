@@ -16,6 +16,9 @@ and Claude.
   can reach out directly about birthday parties and playdates
 - **Weekly email digest** — everyone gets an email every week with the
   reminders and upcoming events, even if they never open the app
+- **Phone notifications** — parents can turn on push notifications
+  (Directory tab) and get alerted the moment a new reminder or chat message
+  goes out, even with the app closed
 - **Admin** — the room parent gets an admin screen to post reminders and
   events by hand, *or* just type what she wants in plain English to an
   embedded Claude assistant ("remind everyone about picture day Friday")
@@ -66,7 +69,19 @@ of the chat assistant.
 2. Verify a sending domain (or use their test domain while developing).
 3. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 
-### 4. Local development
+### 4. Web Push (phone notifications)
+
+Run `npx web-push generate-vapid-keys` locally — it prints a public and
+private key pair, no account/signup needed. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (any `mailto:` address) from the
+output. If these are left unset, everything else still works — parents just
+won't see the "Turn on notifications" option do anything.
+
+Note: on iPhone, push notifications only work once the app has been added
+to the Home Screen (regular Safari tabs can't receive them) and requires
+iOS 16.4+.
+
+### 5. Local development
 
 ```bash
 npm install
@@ -102,7 +117,7 @@ Visit `/signup` and create the first account using your admin invite code.
 - `app/chat` — realtime chat (Supabase Realtime) with a room switcher;
   admin can create extra invite-only rooms from `app/api/chat-rooms`
 - `app/directory` — every parent's contact info + self-service photo/phone/
-  child name editing (`app/api/profile`)
+  child name editing (`app/api/profile`) and the notifications toggle
 - `app/admin` — room-parent-only: reminder/event forms + the AI assistant
 - `app/api/auth/signup` — validates invite code, creates the account
 - `app/api/reminders`, `app/api/events` — admin-only create/delete
@@ -111,7 +126,15 @@ Visit `/signup` and create the first account using your admin invite code.
 - `app/api/admin/assistant` — Claude tool-use loop that can create, list,
   and delete reminders/events on the admin's behalf (see `lib/assistantTools.js`
   for exactly what it's allowed to touch — nothing outside those two tables)
+- `app/api/messages` — posts a chat message server-side (rather than a
+  direct client insert) so it has a hook to fan out push notifications
+- `app/api/push/subscribe` — saves/removes a device's push subscription
 - `app/api/cron/weekly-digest` — builds and sends the weekly email
+- `public/sw.js` — the service worker that receives and displays push
+  notifications; `lib/pushClient.js`/`lib/pushNotify.js` are the client/
+  server halves of the Web Push flow
+- `components/InstallPrompt.jsx` — nudges visitors to add the app to their
+  home screen (native prompt on Android/Chrome, instructions on iOS)
 - `supabase/schema.sql` — database schema + Row Level Security policies +
   Storage bucket setup
 - `middleware.js` — redirects signed-out visitors to `/login` for pages,

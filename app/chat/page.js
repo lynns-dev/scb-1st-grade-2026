@@ -149,7 +149,7 @@ export default function ChatPage() {
     async function load() {
       const { data } = await supabase
         .from("messages")
-        .select("id, body, created_at, user_id, profiles ( full_name, avatar_url )")
+        .select("id, body, created_at, user_id, profiles ( full_name, avatar_url, child_name )")
         .eq("room_id", activeRoomId)
         .order("created_at", { ascending: true })
         .limit(200);
@@ -170,7 +170,7 @@ export default function ChatPage() {
         async (payload) => {
           const { data } = await supabase
             .from("profiles")
-            .select("full_name, avatar_url")
+            .select("full_name, avatar_url, child_name")
             .eq("id", payload.new.user_id)
             .single();
 
@@ -197,12 +197,14 @@ export default function ChatPage() {
     setSending(true);
     setDraft("");
 
-    const { error } = await createClient()
-      .from("messages")
-      .insert({ body, user_id: profile.id, room_id: activeRoomId });
+    const res = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body, roomId: activeRoomId }),
+    });
 
     setSending(false);
-    if (error) setDraft(body);
+    if (!res.ok) setDraft(body);
   }
 
   return (
@@ -261,7 +263,9 @@ export default function ChatPage() {
                   <Avatar src={m.profiles?.avatar_url} name={m.profiles?.full_name} size={28} />
                   <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                     <span className="mb-0.5 px-1 text-[11px] text-slate-400">
-                      {mine ? "You" : m.profiles?.full_name || "A parent"} · {formatTime(m.created_at)}
+                      {mine ? "You" : m.profiles?.full_name || "A parent"}
+                      {m.profiles?.child_name ? ` (${m.profiles.child_name}'s parent)` : ""} ·{" "}
+                      {formatTime(m.created_at)}
                     </span>
                     <div
                       className={`max-w-[75vw] rounded-2xl px-4 py-2 text-sm shadow-card ${
