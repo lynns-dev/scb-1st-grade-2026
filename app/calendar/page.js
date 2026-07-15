@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { uploadEventImage } from "@/lib/uploadFile";
+import { startOfWeek, addDays, isSameDay } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
 
 function groupByMonth(events) {
@@ -18,6 +19,71 @@ function groupByMonth(events) {
     groups.get(key).push(event);
   }
   return groups;
+}
+
+function EventCard({ event, profile, onDelete, showDateBadge = true }) {
+  const start = new Date(event.start_at);
+  const isBirthday = event.event_type === "birthday";
+  const mine = event.created_by === profile?.id;
+
+  return (
+    <li className="flex gap-3 rounded-2xl bg-white p-4 shadow-card">
+      {showDateBadge && (
+        <div className="flex w-12 flex-none flex-col items-center justify-center rounded-xl bg-brand-50 py-1.5 text-brand-600">
+          <span className="text-[10px] font-semibold uppercase">
+            {start.toLocaleDateString(undefined, { month: "short" })}
+          </span>
+          <span className="text-lg font-bold leading-none">{start.getDate()}</span>
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-slate-900">
+          {isBirthday && "🎂 "}
+          {event.title}
+        </p>
+        <p className="text-xs text-slate-400">
+          {event.all_day
+            ? "All day"
+            : start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+          {event.location ? ` · ${event.location}` : ""}
+        </p>
+        {isBirthday && event.profiles?.full_name && (
+          <p className="text-xs text-slate-400">Hosted by {event.profiles.full_name}</p>
+        )}
+        {event.description && <p className="mt-1 text-sm text-slate-500">{event.description}</p>}
+        {event.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.image_url}
+            alt={`${event.title} invitation`}
+            className="mt-2 max-h-48 w-full rounded-xl object-cover"
+          />
+        )}
+        <div className="mt-2 flex items-center gap-3">
+          <a
+            href={googleCalendarUrl({
+              title: event.title,
+              description: event.description,
+              location: event.location,
+              startAt: event.start_at,
+              endAt: event.end_at,
+              allDay: event.all_day,
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-brand-600"
+          >
+            Add to Google Calendar
+          </a>
+          {mine && (
+            <button onClick={() => onDelete(event.id)} className="text-xs font-medium text-red-500">
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </li>
+  );
 }
 
 function BirthdayForm({ profile, onCreated, onCancel }) {
@@ -168,18 +234,104 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
   );
 }
 
+function WeekView({ events, profile, onDelete }) {
+  const todayWeekStart = startOfWeek(new Date());
+  const [weekStart, setWeekStart] = useState(todayWeekStart);
+  const today = new Date();
+  const canGoBack = weekStart.getTime() > todayWeekStart.getTime();
+
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekEnd = days[6];
+  const label =
+    weekStart.getMonth() === weekEnd.getMonth()
+      ? `Week of ${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+      : `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between rounded-xl bg-slate-100 px-2 py-2.5">
+        <button
+          onClick={() => canGoBack && setWeekStart(addDays(weekStart, -7))}
+          disabled={!canGoBack}
+          className="px-2 text-lg text-slate-400 disabled:opacity-30"
+          aria-label="Previous week"
+        >
+          ‹
+        </button>
+        <span className="text-sm font-semibold text-slate-700">{label}</span>
+        <button
+          onClick={() => setWeekStart(addDays(weekStart, 7))}
+          className="px-2 text-lg text-slate-400"
+          aria-label="Next week"
+        >
+          ›
+        </button>
+      </div>
+
+      {days.map((day) => {
+        const dayEvents = events.filter((e) => isSameDay(new Date(e.start_at), day));
+        const isToday = isSameDay(day, today);
+
+        return (
+          <div key={day.toISOString()} className={`mb-3 rounded-2xl p-3 ${isToday ? "bg-brand-50" : ""}`}>
+            <p className={`mb-2 text-sm font-bold ${isToday ? "text-brand-700" : "text-slate-900"}`}>
+              {day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              {isToday && <span className="ml-1.5 text-[10px] font-semibold uppercase text-brand-500">Today</span>}
+            </p>
+            {dayEvents.length === 0 ? (
+              <p className="text-xs text-slate-400">No events</p>
+            ) : (
+              <ul className="space-y-2">
+                {dayEvents.map((e) => (
+                  <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} showDateBadge={false} />
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MonthView({ events, profile, onDelete }) {
+  const groups = groupByMonth(events);
+
+  if (events.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+        No upcoming events yet.
+      </div>
+    );
+  }
+
+  return Array.from(groups.entries()).map(([month, monthEvents]) => (
+    <section key={month} className="mb-6">
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">{month}</h2>
+      <ul className="space-y-3">
+        {monthEvents.map((e) => (
+          <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} />
+        ))}
+      </ul>
+    </section>
+  ));
+}
+
 export default function CalendarPage() {
   const { profile } = useProfile();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showBirthdayForm, setShowBirthdayForm] = useState(false);
+  const [view, setView] = useState("week");
 
   async function refresh() {
     const supabase = createClient();
     const { data } = await supabase
       .from("events")
-      .select("id, title, description, location, image_url, event_type, start_at, end_at, all_day, created_by, profiles ( full_name )")
-      .gte("start_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .select(
+        "id, title, description, location, image_url, event_type, start_at, end_at, all_day, created_by, profiles ( full_name )"
+      )
+      .gte("start_at", startOfWeek(new Date()).toISOString())
       .order("start_at", { ascending: true });
 
     setEvents(data || []);
@@ -195,8 +347,6 @@ export default function CalendarPage() {
     await supabase.from("events").delete().eq("id", id);
     refresh();
   }
-
-  const groups = groupByMonth(events);
 
   return (
     <AppShell title="Calendar">
@@ -220,92 +370,26 @@ export default function CalendarPage() {
         />
       )}
 
+      <div className="mb-4 flex rounded-xl bg-slate-100 p-1">
+        {["week", "month"].map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`flex-1 rounded-lg py-1.5 text-sm font-semibold capitalize ${
+              view === v ? "bg-white text-brand-600 shadow-sm" : "text-slate-500"
+            }`}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="text-sm text-slate-400">Loading…</p>
-      ) : events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
-          No upcoming events yet.
-        </div>
+      ) : view === "week" ? (
+        <WeekView events={events} profile={profile} onDelete={handleDelete} />
       ) : (
-        Array.from(groups.entries()).map(([month, monthEvents]) => (
-          <section key={month} className="mb-6">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-              {month}
-            </h2>
-            <ul className="space-y-3">
-              {monthEvents.map((e) => {
-                const start = new Date(e.start_at);
-                const isBirthday = e.event_type === "birthday";
-                const mine = e.created_by === profile?.id;
-
-                return (
-                  <li key={e.id} className="flex gap-3 rounded-2xl bg-white p-4 shadow-card">
-                    <div className="flex w-12 flex-none flex-col items-center justify-center rounded-xl bg-brand-50 py-1.5 text-brand-600">
-                      <span className="text-[10px] font-semibold uppercase">
-                        {start.toLocaleDateString(undefined, { month: "short" })}
-                      </span>
-                      <span className="text-lg font-bold leading-none">{start.getDate()}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900">
-                        {isBirthday && "🎂 "}
-                        {e.title}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {e.all_day
-                          ? "All day"
-                          : start.toLocaleTimeString(undefined, {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            })}
-                        {e.location ? ` · ${e.location}` : ""}
-                      </p>
-                      {isBirthday && e.profiles?.full_name && (
-                        <p className="text-xs text-slate-400">Hosted by {e.profiles.full_name}</p>
-                      )}
-                      {e.description && (
-                        <p className="mt-1 text-sm text-slate-500">{e.description}</p>
-                      )}
-                      {e.image_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={e.image_url}
-                          alt={`${e.title} invitation`}
-                          className="mt-2 max-h-48 w-full rounded-xl object-cover"
-                        />
-                      )}
-                      <div className="mt-2 flex items-center gap-3">
-                        <a
-                          href={googleCalendarUrl({
-                            title: e.title,
-                            description: e.description,
-                            location: e.location,
-                            startAt: e.start_at,
-                            endAt: e.end_at,
-                            allDay: e.all_day,
-                          })}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-medium text-brand-600"
-                        >
-                          Add to Google Calendar
-                        </a>
-                        {mine && (
-                          <button
-                            onClick={() => handleDelete(e.id)}
-                            className="text-xs font-medium text-red-500"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))
+        <MonthView events={events} profile={profile} onDelete={handleDelete} />
       )}
     </AppShell>
   );

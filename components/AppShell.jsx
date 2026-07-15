@@ -6,7 +6,7 @@ import { useProfile } from "@/lib/useProfile";
 import BottomNav from "./BottomNav";
 import InstallPrompt from "./InstallPrompt";
 
-export default function AppShell({ title, children }) {
+export default function AppShell({ title, backHref, children }) {
   const router = useRouter();
   const { profile } = useProfile();
 
@@ -21,10 +21,21 @@ export default function AppShell({ title, children }) {
     <div className="min-h-screen pb-24">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur safe-top">
         <div className="mx-auto flex max-w-sm items-center justify-between px-5 py-4">
-          <h1 className="text-lg font-bold text-slate-900">{title}</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            {backHref && (
+              <button
+                onClick={() => router.push(backHref)}
+                className="flex-none text-xl leading-none text-slate-400"
+                aria-label="Back"
+              >
+                ‹
+              </button>
+            )}
+            <h1 className="truncate text-lg font-bold text-slate-900">{title}</h1>
+          </div>
           <button
             onClick={handleSignOut}
-            className="text-xs font-medium text-slate-400"
+            className="flex-none text-xs font-medium text-slate-400"
           >
             Sign out
           </button>

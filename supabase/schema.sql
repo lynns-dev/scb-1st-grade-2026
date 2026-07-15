@@ -92,8 +92,10 @@ create table if not exists chat_room_members (
 );
 
 insert into chat_rooms (name, is_default)
-  select 'Room chat', true
+  select 'Main Chat', true
   where not exists (select 1 from chat_rooms where is_default);
+
+update chat_rooms set name = 'Main Chat' where is_default and name = 'Room chat';
 
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),

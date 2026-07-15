@@ -6,12 +6,14 @@ and Claude.
 
 **What's in it:**
 - **Home** — this week's quick reminders + upcoming events at a glance
-- **Calendar** — the full classroom calendar, with a one-tap "Add to Google
-  Calendar" link on every event
+- **Calendar** — a week view by default (today highlighted, day-by-day, "No
+  events" for empty days) with a Month view toggle for looking further out,
+  plus a one-tap "Add to Google Calendar" link on every event
 - **Birthday invites** — any parent can post one for their own kid (host,
   location, RSVP details); it shows up on the shared calendar automatically
-- **Room chat** — a live group chat everyone's in by default, plus the
-  admin can spin up extra invite-only rooms for specific parents
+- **Chat** — a room list you tap into (like a messaging app); everyone's in
+  "Main Chat" by default, plus the admin can spin up extra invite-only rooms
+  for specific parents
 - **Directory** — every parent's name, email, phone, and photo, so families
   can reach out directly about birthday parties and playdates
 - **Weekly email digest** — everyone gets an email every week with the
@@ -112,10 +114,12 @@ Visit `/signup` and create the first account using your admin invite code.
 
 - `app/(auth)/login`, `app/(auth)/signup` — sign in / join with invite code
 - `app/home` — weekly reminders + upcoming events dashboard
-- `app/calendar` — full event list grouped by month, with birthday invite
-  posting and "Add to Google Calendar" links
-- `app/chat` — realtime chat (Supabase Realtime) with a room switcher;
-  admin can create extra invite-only rooms from `app/api/chat-rooms`
+- `app/calendar` — week/month calendar views (`WeekView`/`MonthView`,
+  sharing an `EventCard`), birthday invite posting, and "Add to Google
+  Calendar" links
+- `app/chat` — room list ("Main Chat" + any invite-only rooms the admin
+  created via `app/api/chat-rooms`); `app/chat/[roomId]` is the realtime
+  message thread (Supabase Realtime) for one room
 - `app/directory` — every parent's contact info + self-service photo/phone/
   child name editing (`app/api/profile`) and the notifications toggle
 - `app/admin` — room-parent-only: reminder/event forms + the AI assistant

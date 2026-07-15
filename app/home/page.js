@@ -5,16 +5,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
+import { startOfWeek } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
-
-function startOfWeek(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day;
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, {
