@@ -38,7 +38,7 @@ export const GET = withApiError(async (request) => {
       .order("created_at", { ascending: false }),
     admin
       .from("events")
-      .select("title, start_at, all_day")
+      .select("title, start_at, all_day, location, event_type")
       .gte("start_at", now.toISOString())
       .lte("start_at", weekAhead.toISOString())
       .order("start_at", { ascending: true }),

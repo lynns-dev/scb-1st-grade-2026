@@ -6,8 +6,14 @@ and Claude.
 
 **What's in it:**
 - **Home** — this week's quick reminders + upcoming events at a glance
-- **Calendar** — the full classroom calendar
-- **Room chat** — a live group chat for all classroom parents
+- **Calendar** — the full classroom calendar, with a one-tap "Add to Google
+  Calendar" link on every event
+- **Birthday invites** — any parent can post one for their own kid (host,
+  location, RSVP details); it shows up on the shared calendar automatically
+- **Room chat** — a live group chat everyone's in by default, plus the
+  admin can spin up extra invite-only rooms for specific parents
+- **Directory** — every parent's name, email, phone, and photo, so families
+  can reach out directly about birthday parties and playdates
 - **Weekly email digest** — everyone gets an email every week with the
   reminders and upcoming events, even if they never open the app
 - **Admin** — the room parent gets an admin screen to post reminders and
@@ -35,9 +41,12 @@ them just means updating an env var and redeploying.
 ### 1. Supabase (data, auth, chat)
 
 1. Create a free project at [supabase.com](https://supabase.com).
-2. In the SQL Editor, run `supabase/schema.sql` from this repo — it
-   creates the `profiles`, `events`, `reminders`, and `messages` tables,
-   locks them down with Row Level Security, and turns on realtime for chat.
+2. In the SQL Editor, run `supabase/schema.sql` from this repo (it's safe
+   to re-run in full any time you pull an update with new tables/columns)
+   — it creates the `profiles`, `events`, `reminders`, `chat_rooms`,
+   `chat_room_members`, and `messages` tables, locks them down with Row
+   Level Security, turns on realtime for chat, and sets up the `avatars`
+   Storage bucket for profile pictures.
 3. From **Project Settings → API**, copy the Project URL, `anon` public
    key, and `service_role` secret key into your env vars (see
    `.env.example`).
@@ -88,17 +97,25 @@ Visit `/signup` and create the first account using your admin invite code.
 
 - `app/(auth)/login`, `app/(auth)/signup` — sign in / join with invite code
 - `app/home` — weekly reminders + upcoming events dashboard
-- `app/calendar` — full event list, grouped by month
-- `app/chat` — realtime room chat (Supabase Realtime)
+- `app/calendar` — full event list grouped by month, with birthday invite
+  posting and "Add to Google Calendar" links
+- `app/chat` — realtime chat (Supabase Realtime) with a room switcher;
+  admin can create extra invite-only rooms from `app/api/chat-rooms`
+- `app/directory` — every parent's contact info + self-service photo/phone/
+  child name editing (`app/api/profile`)
 - `app/admin` — room-parent-only: reminder/event forms + the AI assistant
 - `app/api/auth/signup` — validates invite code, creates the account
 - `app/api/reminders`, `app/api/events` — admin-only create/delete
+  (parents can also post/delete their own birthday-type events directly,
+  enforced by Row Level Security rather than these routes)
 - `app/api/admin/assistant` — Claude tool-use loop that can create, list,
   and delete reminders/events on the admin's behalf (see `lib/assistantTools.js`
   for exactly what it's allowed to touch — nothing outside those two tables)
 - `app/api/cron/weekly-digest` — builds and sends the weekly email
-- `supabase/schema.sql` — database schema + Row Level Security policies
-- `middleware.js` — redirects signed-out visitors to `/login`
+- `supabase/schema.sql` — database schema + Row Level Security policies +
+  Storage bucket setup
+- `middleware.js` — redirects signed-out visitors to `/login` for pages,
+  and returns a JSON 401 (not an HTML redirect) for API calls
 
 ## Notes before you invite families
 
@@ -109,3 +126,8 @@ Visit `/signup` and create the first account using your admin invite code.
 - The admin assistant can only read/write the `reminders` and `events`
   tables — it has no access to parent accounts, chat messages, or anything
   else in the database.
+- Every parent's email/phone/photo is visible to every other signed-in
+  parent (that's the point of the Directory) — there's no per-field privacy
+  toggle in this version.
+- Chat room membership is set at creation time — to change who's in a
+  room, delete it and recreate it with the right people for now.

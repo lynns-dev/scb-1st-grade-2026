@@ -12,7 +12,7 @@ export const POST = withApiError(async (request) => {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { email, password, fullName, childName, inviteCode } = body;
+  const { email, password, fullName, childName, phone, inviteCode } = body;
 
   if (!email || !password || !fullName || !inviteCode) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -54,6 +54,7 @@ export const POST = withApiError(async (request) => {
     email,
     full_name: fullName,
     child_name: childName || null,
+    phone: phone || null,
     role,
   });
 

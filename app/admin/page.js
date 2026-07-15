@@ -157,6 +157,7 @@ function ReminderForm({ onCreated }) {
 function EventForm({ onCreated }) {
   const [title, setTitle] = useState("");
   const [startAt, setStartAt] = useState("");
+  const [location, setLocation] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
@@ -165,12 +166,13 @@ function EventForm({ onCreated }) {
     const res = await fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, startAt: new Date(startAt).toISOString() }),
+      body: JSON.stringify({ title, startAt: new Date(startAt).toISOString(), location }),
     });
     setSaving(false);
     if (res.ok) {
       setTitle("");
       setStartAt("");
+      setLocation("");
       onCreated();
     }
   }
@@ -189,6 +191,12 @@ function EventForm({ onCreated }) {
         type="datetime-local"
         value={startAt}
         onChange={(e) => setStartAt(e.target.value)}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      />
+      <input
+        placeholder="Location (optional)"
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
       />
       <button

@@ -23,6 +23,7 @@ export const POST = withApiError(async (request) => {
     .insert({
       title: body.title,
       description: body.description || null,
+      location: body.location || null,
       start_at: body.startAt,
       end_at: body.endAt || null,
       all_day: !!body.allDay,

@@ -22,7 +22,15 @@ const ICONS = {
       <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" />
     </>
   ),
+  directory: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6M16 4.5c1.7.4 3 2 3 3.9s-1.3 3.5-3 3.9M20.5 20c0-2.8-1.8-5.1-4.2-5.8" />
+    </>
+  ),
 };
+
+const GRID_COLS = { 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
 
 function Icon({ name }) {
   return (
@@ -48,6 +56,7 @@ export default function BottomNav({ isAdmin }) {
     { href: "/home", label: "Home", icon: "home" },
     { href: "/calendar", label: "Calendar", icon: "calendar" },
     { href: "/chat", label: "Chat", icon: "chat" },
+    { href: "/directory", label: "Directory", icon: "directory" },
   ];
 
   if (isAdmin) {
@@ -56,7 +65,7 @@ export default function BottomNav({ isAdmin }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
-      <div className={`mx-auto grid max-w-sm ${items.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}>
+      <div className={`mx-auto grid max-w-sm ${GRID_COLS[items.length] || "grid-cols-4"}`}>
         {items.map((item) => {
           const active = pathname?.startsWith(item.href);
           return (

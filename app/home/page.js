@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
+import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import AppShell from "@/components/AppShell";
 
 function startOfWeek(date) {
@@ -44,7 +45,7 @@ export default function HomePage() {
           .order("created_at", { ascending: false }),
         supabase
           .from("events")
-          .select("id, title, start_at, all_day")
+          .select("id, title, description, location, start_at, end_at, all_day, event_type")
           .gte("start_at", new Date().toISOString())
           .order("start_at", { ascending: true })
           .limit(3),
@@ -110,14 +111,29 @@ export default function HomePage() {
         ) : (
           <ul className="space-y-3">
             {events.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-card"
-              >
-                <span className="font-medium text-slate-900">{e.title}</span>
-                <span className="text-xs text-slate-400">
-                  {e.all_day ? formatDate(e.start_at) : formatDate(e.start_at)}
-                </span>
+              <li key={e.id} className="rounded-2xl bg-white p-4 shadow-card">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-slate-900">
+                    {e.event_type === "birthday" && "🎂 "}
+                    {e.title}
+                  </span>
+                  <span className="text-xs text-slate-400">{formatDate(e.start_at)}</span>
+                </div>
+                <a
+                  href={googleCalendarUrl({
+                    title: e.title,
+                    description: e.description,
+                    location: e.location,
+                    startAt: e.start_at,
+                    endAt: e.end_at,
+                    allDay: e.all_day,
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block text-xs font-medium text-brand-600"
+                >
+                  Add to Google Calendar
+                </a>
               </li>
             ))}
           </ul>

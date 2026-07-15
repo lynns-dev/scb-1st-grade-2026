@@ -42,6 +42,13 @@ export async function middleware(request) {
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
   if (!user && !isPublic) {
+    // API routes always return JSON — even for "you're not signed in" — so a
+    // fetch() from the app never gets an HTML redirect back where it expects
+    // JSON (that's the `<!DOCTYPE` parse error). Each API route already
+    // re-checks the session itself via requireProfile()/requireAdmin().
+    if (path.startsWith("/api/")) {
+      return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+    }
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

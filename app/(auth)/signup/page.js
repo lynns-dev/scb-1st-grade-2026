@@ -11,6 +11,7 @@ export default function SignupPage() {
     fullName: "",
     childName: "",
     email: "",
+    phone: "",
     password: "",
     inviteCode: "",
   });
@@ -90,7 +91,9 @@ export default function SignupPage() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Email <span className="text-slate-400">(shown to other parents)</span>
+          </label>
           <input
             type="email"
             required
@@ -98,6 +101,18 @@ export default function SignupPage() {
             onChange={update("email")}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
             autoComplete="email"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Phone <span className="text-slate-400">(optional — shown to other parents)</span>
+          </label>
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={update("phone")}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            autoComplete="tel"
           />
         </div>
         <div>
