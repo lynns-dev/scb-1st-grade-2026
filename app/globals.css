@@ -18,7 +18,8 @@ body {
 h1,
 h2,
 h3 {
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--font-body), "Helvetica Neue", Arial, sans-serif;
+  color: #000 !important;
 }
 
 input,
