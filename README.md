@@ -138,12 +138,13 @@ Visit `/signup` and create the first account using your admin invite code.
   child name editing (`app/api/profile`) and the notifications toggle
 - `app/admin` — room-parent-only: reminder/event forms + the AI assistant
 - `app/api/auth/signup` — validates invite code, creates the account
-- `app/api/reminders`, `app/api/events` — admin-only create/delete
+- `app/api/reminders`, `app/api/events` — admin-only create/edit/delete
   (parents can also post/delete their own birthday-type events directly,
   enforced by Row Level Security rather than these routes)
 - `app/api/admin/assistant` — Claude tool-use loop that can create, list,
-  and delete reminders/events on the admin's behalf (see `lib/assistantTools.js`
-  for exactly what it's allowed to touch — nothing outside those two tables)
+  edit, and delete reminders/events on the admin's behalf (see
+  `lib/assistantTools.js` for exactly what it's allowed to touch — nothing
+  outside those two tables)
 - `app/api/messages` — posts a chat message server-side (rather than a
   direct client insert) so it has a hook to fan out push notifications
 - `app/api/push/subscribe` — saves/removes a device's push subscription

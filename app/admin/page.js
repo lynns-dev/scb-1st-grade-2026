@@ -192,6 +192,291 @@ function ReminderForm({ onCreated }) {
   );
 }
 
+function ReminderRow({ reminder, index, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(reminder.title);
+  const [body, setBody] = useState(reminder.body || "");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const scheduled = new Date(reminder.publish_at).getTime() > Date.now();
+
+  function startEdit() {
+    setTitle(reminder.title);
+    setBody(reminder.body || "");
+    const d = new Date(reminder.publish_at);
+    setScheduleDate(d.toISOString().slice(0, 10));
+    setScheduleTime(d.toTimeString().slice(0, 5));
+    setError("");
+    setEditing(true);
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    const publishAt = scheduleDate
+      ? new Date(`${scheduleDate}T${scheduleTime || "08:00"}`).toISOString()
+      : undefined;
+
+    const res = await fetch(`/api/reminders/${reminder.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, body, publishAt }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    setSaving(false);
+    if (!res.ok) {
+      setError(data.error || "Couldn't save changes.");
+      return;
+    }
+    setEditing(false);
+    onChanged();
+  }
+
+  async function handleDelete() {
+    await fetch(`/api/reminders/${reminder.id}`, { method: "DELETE" });
+    onChanged();
+  }
+
+  if (editing) {
+    return (
+      <li className="rounded-2xl bg-white p-3 shadow-card">
+        <form onSubmit={handleSave} className="space-y-2">
+          <input
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={2}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              className="w-1/2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+            <input
+              type="time"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              className="w-1/2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className="animate-fade-in-item flex items-start justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+      style={staggerStyle(index)}
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-900">{reminder.title}</p>
+        {reminder.body && <p className="text-xs text-slate-500">{reminder.body}</p>}
+        {scheduled && (
+          <p className="mt-1 text-xs font-medium text-amber-600">
+            ⏱ Scheduled for{" "}
+            {new Date(reminder.publish_at).toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-none gap-3">
+        <button onClick={startEdit} className="text-xs font-medium text-brand-600">
+          Edit
+        </button>
+        <button onClick={handleDelete} className="text-xs font-medium text-red-500">
+          Delete
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function toLocalDateTimeInput(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function EventRow({ event, index, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description || "");
+  const [location, setLocation] = useState(event.location || "");
+  const [startAt, setStartAt] = useState("");
+  const [allDay, setAllDay] = useState(event.all_day);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function startEdit() {
+    setTitle(event.title);
+    setDescription(event.description || "");
+    setLocation(event.location || "");
+    setStartAt(toLocalDateTimeInput(event.start_at));
+    setAllDay(event.all_day);
+    setError("");
+    setEditing(true);
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    const res = await fetch(`/api/events/${event.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        description,
+        location,
+        startAt: new Date(startAt).toISOString(),
+        allDay,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    setSaving(false);
+    if (!res.ok) {
+      setError(data.error || "Couldn't save changes.");
+      return;
+    }
+    setEditing(false);
+    onChanged();
+  }
+
+  async function handleDelete() {
+    await fetch(`/api/events/${event.id}`, { method: "DELETE" });
+    onChanged();
+  }
+
+  if (editing) {
+    return (
+      <li className="rounded-2xl bg-white p-3 shadow-card">
+        <form onSubmit={handleSave} className="space-y-2">
+          <input
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <input
+            required
+            type="datetime-local"
+            value={startAt}
+            onChange={(e) => setStartAt(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <input
+            placeholder="Location (optional)"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <textarea
+            placeholder="Details (optional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={allDay}
+              onChange={(e) => setAllDay(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            All day
+          </label>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className="animate-fade-in-item flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+      style={staggerStyle(index)}
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-900">{event.title}</p>
+        <p className="text-xs text-slate-400">
+          {event.all_day
+            ? "All day"
+            : new Date(event.start_at).toLocaleString(undefined, {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+          {event.location ? ` · ${event.location}` : ""}
+        </p>
+      </div>
+      <div className="flex flex-none gap-3">
+        <button onClick={startEdit} className="text-xs font-medium text-brand-600">
+          Edit
+        </button>
+        <button onClick={handleDelete} className="text-xs font-medium text-red-500">
+          Delete
+        </button>
+      </div>
+    </li>
+  );
+}
+
 function EventForm({ onCreated }) {
   const [title, setTitle] = useState("");
   const [startAt, setStartAt] = useState("");
@@ -263,7 +548,7 @@ export default function AdminPage() {
         .order("created_at", { ascending: false }),
       supabase
         .from("events")
-        .select("id, title, start_at")
+        .select("id, title, description, location, start_at, all_day")
         .gte("start_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
         .order("start_at", { ascending: true }),
     ]);
@@ -280,16 +565,6 @@ export default function AdminPage() {
       router.replace("/home");
     }
   }, [profileLoading, profile, router]);
-
-  async function deleteReminder(id) {
-    await fetch(`/api/reminders/${id}`, { method: "DELETE" });
-    refresh();
-  }
-
-  async function deleteEvent(id) {
-    await fetch(`/api/events/${id}`, { method: "DELETE" });
-    refresh();
-  }
 
   if (profileLoading || !profile) {
     return (
@@ -312,38 +587,9 @@ export default function AdminPage() {
       <Section title="Post a reminder">
         <ReminderForm onCreated={refresh} />
         <ul className="space-y-2">
-          {reminders.map((r, i) => {
-            const scheduled = new Date(r.publish_at).getTime() > Date.now();
-            return (
-              <li
-                key={r.id}
-                className="animate-fade-in-item flex items-start justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
-                style={staggerStyle(i)}
-              >
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{r.title}</p>
-                  {r.body && <p className="text-xs text-slate-500">{r.body}</p>}
-                  {scheduled && (
-                    <p className="mt-1 text-xs font-medium text-amber-600">
-                      ⏱ Scheduled for{" "}
-                      {new Date(r.publish_at).toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteReminder(r.id)}
-                  className="flex-none text-xs font-medium text-red-500"
-                >
-                  Delete
-                </button>
-              </li>
-            );
-          })}
+          {reminders.map((r, i) => (
+            <ReminderRow key={r.id} reminder={r} index={i} onChanged={refresh} />
+          ))}
         </ul>
       </Section>
 
@@ -351,29 +597,7 @@ export default function AdminPage() {
         <EventForm onCreated={refresh} />
         <ul className="space-y-2">
           {events.map((e, i) => (
-            <li
-              key={e.id}
-              className="animate-fade-in-item flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
-              style={staggerStyle(i)}
-            >
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{e.title}</p>
-                <p className="text-xs text-slate-400">
-                  {new Date(e.start_at).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-              <button
-                onClick={() => deleteEvent(e.id)}
-                className="flex-none text-xs font-medium text-red-500"
-              >
-                Delete
-              </button>
-            </li>
+            <EventRow key={e.id} event={e} index={i} onChanged={refresh} />
           ))}
         </ul>
       </Section>

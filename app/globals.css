@@ -37,27 +37,33 @@ button {
   padding-top: env(safe-area-inset-top);
 }
 
+/* Page-level wrapper: opacity only, no movement. It used to also slide on
+   the Y axis, which — combined with the item-level slide below happening on
+   a different timeline — made nested elements appear to move independently
+   of each other and settle at different moments. That's what read as
+   "jumpy": two overlapping motions instead of one coordinated one. Keeping
+   this to opacity avoids compounding with any child transform entirely. */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: fadeIn 0.5s ease-out backwards;
+  will-change: opacity;
 }
 
-/* Same fade, tuned lighter/quicker for individual list rows so a cascade
-   of many items still finishes settling quickly. */
+/* Individual list rows: a gentle opacity + lift, longer and softer than
+   before, on a smooth "standard" easing curve rather than a sharp
+   deceleration — reads as a settle rather than a snap. */
 @keyframes fadeInItem {
   from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -66,7 +72,8 @@ button {
 }
 
 .animate-fade-in-item {
-  animation: fadeInItem 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: fadeInItem 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) backwards;
+  will-change: opacity, transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
