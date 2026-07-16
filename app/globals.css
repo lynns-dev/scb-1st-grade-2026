@@ -10,7 +10,7 @@ body {
 body {
   background: #faf6ef;
   color: #1c2140;
-  font-family: "Monotype Grotesque", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body), "Helvetica Neue", Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }

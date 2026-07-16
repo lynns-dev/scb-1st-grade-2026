@@ -1,4 +1,16 @@
+import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+
+// Monotype Grotesque isn't freely licensable for web embedding, so most
+// visitors would just see the fallback sans-serif anyway. Hanken Grotesk is
+// a free, genuinely grotesque-style face with a similar neutral character —
+// self-hosted at build time via next/font, so it actually renders for
+// everyone with no external request.
+const hankenGrotesk = Hanken_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata = {
   title: "SCB 1st Grade 2026",
@@ -20,7 +32,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className={hankenGrotesk.variable}>
       <body className="min-h-screen">{children}</body>
     </html>
   );
