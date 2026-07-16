@@ -8,10 +8,17 @@ body {
 }
 
 body {
-  background: #f5f6fb;
+  background: #faf6ef;
   color: #1c2140;
+  font-family: "Monotype Grotesque", "Helvetica Neue", Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Times New Roman", Times, serif;
 }
 
 input,

@@ -59,22 +59,15 @@ export default function HomePage() {
     };
   }, []);
 
+  const firstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
+
   return (
-    <AppShell title="This week">
+    <AppShell title={firstName ? `Hi, ${firstName}!` : "Hi!"}>
       {profile?.child_name && (
         <div className="mb-6 flex flex-col items-center text-center">
           <Avatar src={profile.child_avatar_url} name={profile.child_name} size={96} />
           <p className="mt-3 text-xl font-bold text-slate-900">{profile.child_name}</p>
-          <p className="text-sm text-slate-500">
-            Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-          </p>
         </div>
-      )}
-
-      {!profile?.child_name && (
-        <p className="mb-5 text-sm text-slate-500">
-          Welcome{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-        </p>
       )}
 
       <section className="mb-6">

@@ -22,8 +22,8 @@ export default function AppShell({ title, backHref, children }) {
   return (
     <div className="min-h-screen pb-24">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur safe-top">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-3 py-4">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="mx-auto grid max-w-lg grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-4">
+          <div className="flex min-w-0 items-center">
             {backHref && (
               <button
                 onClick={() => router.push(backHref)}
@@ -33,14 +33,16 @@ export default function AppShell({ title, backHref, children }) {
                 ‹
               </button>
             )}
-            <h1 className="truncate text-lg font-bold text-slate-900">{title}</h1>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex-none text-xs font-medium text-slate-400"
-          >
-            Sign out
-          </button>
+          <h1 className="truncate text-center text-lg font-bold text-slate-900">{title}</h1>
+          <div className="flex justify-end">
+            <button
+              onClick={handleSignOut}
+              className="flex-none text-xs font-medium text-slate-400"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
