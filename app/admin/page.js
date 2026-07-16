@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import AppShell from "@/components/AppShell";
+import { SkeletonCards } from "@/components/Skeleton";
 
 function Section({ title, children }) {
   return (
@@ -292,7 +293,7 @@ export default function AdminPage() {
   if (profileLoading || !profile) {
     return (
       <AppShell title="Admin">
-        <p className="text-sm text-slate-400">Loading…</p>
+        <SkeletonCards count={3} height="h-20" />
       </AppShell>
     );
   }

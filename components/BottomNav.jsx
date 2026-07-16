@@ -75,7 +75,7 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
-      <div className={`mx-auto grid max-w-sm ${GRID_COLS[items.length] || "grid-cols-4"}`}>
+      <div className={`mx-auto grid max-w-lg ${GRID_COLS[items.length] || "grid-cols-4"}`}>
         {items.map((item) => {
           const active = pathname?.startsWith(item.href);
           const color = COLORS[item.icon];
@@ -83,12 +83,12 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 py-2.5 text-[11px]"
-              style={{ color: active ? color.fg : "#94a3b8" }}
+              className="flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-200"
+              style={{ color: color.fg }}
             >
               <span className="relative flex h-8 w-8 items-center justify-center">
                 <span
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200"
                   style={{ backgroundColor: active ? color.bg : "transparent" }}
                 >
                   <Icon name={item.icon} />
@@ -99,7 +99,9 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
                   </span>
                 )}
               </span>
-              <span className={active ? "font-semibold" : "font-medium"}>{item.label}</span>
+              <span className={active ? "font-semibold" : "font-medium text-slate-500"}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

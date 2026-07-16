@@ -22,7 +22,7 @@ export default function AppShell({ title, backHref, children }) {
   return (
     <div className="min-h-screen pb-24">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur safe-top">
-        <div className="mx-auto flex max-w-sm items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-lg items-center justify-between px-3 py-4">
           <div className="flex min-w-0 items-center gap-2">
             {backHref && (
               <button
@@ -44,9 +44,9 @@ export default function AppShell({ title, backHref, children }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-sm px-5 py-5">
+      <main className="mx-auto max-w-lg px-3 py-5">
         <InstallPrompt />
-        {children}
+        <div className="animate-fade-in">{children}</div>
       </main>
 
       <BottomNav isAdmin={profile?.role === "admin"} unreadCount={unreadTotal} />

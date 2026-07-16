@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { useUnreadCounts } from "@/lib/useUnreadCounts";
 import AppShell from "@/components/AppShell";
+import { SkeletonCards } from "@/components/Skeleton";
 
 function NewRoomForm({ parents, onCreated, onCancel }) {
   const [name, setName] = useState("");
@@ -145,7 +146,7 @@ export default function ChatListPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <SkeletonCards count={2} height="h-14" />
       ) : (
         <ul className="space-y-2">
           {rooms.map((r) => {

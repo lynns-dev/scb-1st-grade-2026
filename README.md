@@ -16,7 +16,8 @@ and Claude.
   location, RSVP details); it shows up on the shared calendar automatically
 - **Chat** — a room list you tap into (like a messaging app); everyone's in
   "Main Chat" by default, plus the admin can spin up extra invite-only rooms
-  for specific parents
+  for specific parents. Photos can be attached to a message and saved from
+  the chat by anyone who receives them.
 - **Directory** — every parent's name, email, phone, and photo, so families
   can reach out directly about birthday parties and playdates
 - **Weekly email digest** — everyone gets an email every week with the
@@ -131,7 +132,8 @@ Visit `/signup` and create the first account using your admin invite code.
   Calendar" links
 - `app/chat` — room list ("Main Chat" + any invite-only rooms the admin
   created via `app/api/chat-rooms`); `app/chat/[roomId]` is the realtime
-  message thread (Supabase Realtime) for one room
+  message thread (Supabase Realtime) for one room, including photo
+  attachments (uploaded to the `chat-images` Storage bucket)
 - `app/directory` — every parent's contact info + self-service photo/phone/
   child name editing (`app/api/profile`) and the notifications toggle
 - `app/admin` — room-parent-only: reminder/event forms + the AI assistant

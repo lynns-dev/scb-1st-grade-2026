@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
+import { uploadChatImage } from "@/lib/uploadFile";
 import Avatar from "@/components/Avatar";
 import AppShell from "@/components/AppShell";
+import Skeleton from "@/components/Skeleton";
 
 function formatTime(iso) {
   return new Date(iso).toLocaleTimeString(undefined, {
@@ -13,15 +15,28 @@ function formatTime(iso) {
   });
 }
 
+function MessageImage({ src }) {
+  return (
+    <a href={src} target="_blank" rel="noopener noreferrer" className="mb-1 block">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="Shared photo" className="max-h-64 w-full rounded-xl object-cover" />
+    </a>
+  );
+}
+
 export default function ChatRoomPage({ params }) {
   const roomId = params.roomId;
   const { profile } = useProfile();
   const [roomName, setRoomName] = useState("Chat");
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const bottomRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -44,7 +59,7 @@ export default function ChatRoomPage({ params }) {
         supabase.from("chat_rooms").select("name, is_default").eq("id", roomId).single(),
         supabase
           .from("messages")
-          .select("id, body, created_at, user_id, profiles ( full_name, avatar_url, child_name )")
+          .select("id, body, image_url, created_at, user_id, profiles ( full_name, avatar_url, child_name )")
           .eq("room_id", roomId)
           .order("created_at", { ascending: true })
           .limit(200),
@@ -88,30 +103,65 @@ export default function ChatRoomPage({ params }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  function handleImagePick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
+
+  function clearImage() {
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function handleSend(e) {
     e.preventDefault();
     const body = draft.trim();
-    if (!body || !profile) return;
+    if ((!body && !imageFile) || !profile) return;
 
     setSending(true);
+    setError("");
+
+    let imageUrl = null;
+    if (imageFile) {
+      try {
+        const supabase = createClient();
+        imageUrl = await uploadChatImage(supabase, profile.id, imageFile);
+      } catch (uploadError) {
+        setSending(false);
+        setError(uploadError.message || "Couldn't upload that photo.");
+        return;
+      }
+    }
+
     setDraft("");
+    clearImage();
 
     const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body, roomId }),
+      body: JSON.stringify({ body, imageUrl, roomId }),
     });
 
     setSending(false);
-    if (!res.ok) setDraft(body);
+    if (!res.ok) {
+      setDraft(body);
+      setError("Couldn't send that message.");
+    }
   }
 
   return (
     <AppShell title={roomName} backHref="/chat">
-      <div className="flex flex-col pb-20">
+      <div className="flex flex-col pb-32">
         <div className="space-y-3">
           {loading ? (
-            <p className="text-sm text-slate-400">Loading…</p>
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-2/3" />
+              <Skeleton className="ml-auto h-10 w-1/2" />
+              <Skeleton className="h-10 w-3/5" />
+            </div>
           ) : messages.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
               No messages yet — say hi!
@@ -133,8 +183,20 @@ export default function ChatRoomPage({ params }) {
                         mine ? "bg-brand-500 text-white" : "bg-white text-slate-900"
                       }`}
                     >
+                      {m.image_url && <MessageImage src={m.image_url} />}
                       {m.body}
                     </div>
+                    {m.image_url && (
+                      <a
+                        href={m.image_url}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 px-1 text-[11px] font-medium text-brand-600"
+                      >
+                        ⬇ Save photo
+                      </a>
+                    )}
                   </div>
                 </div>
               );
@@ -144,24 +206,55 @@ export default function ChatRoomPage({ params }) {
         </div>
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="fixed inset-x-0 bottom-16 z-10 mx-auto flex max-w-sm gap-2 border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur"
-      >
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Message the room…"
-          className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-        <button
-          type="submit"
-          disabled={sending || !draft.trim()}
-          className="rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-card disabled:opacity-50"
-        >
-          Send
-        </button>
-      </form>
+      <div className="fixed inset-x-0 bottom-16 z-10 mx-auto max-w-lg border-t border-slate-200 bg-white/95 backdrop-blur">
+        {imagePreview && (
+          <div className="flex items-center gap-2 px-3 pt-2">
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePreview} alt="Attachment preview" className="h-14 w-14 rounded-lg object-cover" />
+              <button
+                type="button"
+                onClick={clearImage}
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-xs text-white"
+                aria-label="Remove photo"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+        {error && <p className="px-3 pt-2 text-xs text-red-600">{error}</p>}
+        <form onSubmit={handleSend} className="flex gap-2 px-3 py-3">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-none rounded-full border border-slate-200 bg-white px-3 py-2.5 text-lg shadow-sm"
+            aria-label="Attach a photo"
+          >
+            📷
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImagePick}
+          />
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Message the room…"
+            className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <button
+            type="submit"
+            disabled={sending || (!draft.trim() && !imageFile)}
+            className="flex-none rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-card disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </AppShell>
   );
 }

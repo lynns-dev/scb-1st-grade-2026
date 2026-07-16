@@ -7,6 +7,7 @@ import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { uploadEventImage } from "@/lib/uploadFile";
 import { startOfWeek, addDays, isSameDay } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
+import { SkeletonCards } from "@/components/Skeleton";
 
 function groupByMonth(events) {
   const groups = new Map();
@@ -385,7 +386,7 @@ export default function CalendarPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <SkeletonCards count={4} />
       ) : view === "week" ? (
         <WeekView events={events} profile={profile} onDelete={handleDelete} />
       ) : (

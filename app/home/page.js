@@ -8,6 +8,7 @@ import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { startOfWeek } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
+import { SkeletonCards } from "@/components/Skeleton";
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -81,7 +82,7 @@ export default function HomePage() {
           Weekly reminders
         </h2>
         {loading ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <SkeletonCards count={2} />
         ) : reminders.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
             No reminders posted yet this week.
@@ -108,7 +109,7 @@ export default function HomePage() {
           </Link>
         </div>
         {loading ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <SkeletonCards count={2} />
         ) : events.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
             Nothing on the calendar yet.

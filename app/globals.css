@@ -28,3 +28,29 @@ button {
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+  }
+}
+
+a,
+button {
+  transition: color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}

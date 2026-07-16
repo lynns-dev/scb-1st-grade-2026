@@ -15,11 +15,15 @@ export const POST = withApiError(async (request) => {
   }
 
   const body = await request.json().catch(() => null);
-  const text = body?.body?.trim();
+  const text = body?.body?.trim() || "";
+  const imageUrl = body?.imageUrl || null;
   const roomId = body?.roomId;
 
-  if (!text || !roomId) {
-    return NextResponse.json({ error: "Message and room are required" }, { status: 400 });
+  if ((!text && !imageUrl) || !roomId) {
+    return NextResponse.json(
+      { error: "A message needs text or a photo, and a room" },
+      { status: 400 }
+    );
   }
 
   const admin = createAdminClient();
@@ -59,8 +63,8 @@ export const POST = withApiError(async (request) => {
 
   const { data: message, error } = await admin
     .from("messages")
-    .insert({ body: text, user_id: auth.profile.id, room_id: roomId })
-    .select("id, body, created_at, user_id")
+    .insert({ body: text || null, image_url: imageUrl, user_id: auth.profile.id, room_id: roomId })
+    .select("id, body, image_url, created_at, user_id")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -73,7 +77,11 @@ export const POST = withApiError(async (request) => {
       memberIds,
       {
         title: room.is_default ? auth.profile.full_name : `${room.name}: ${auth.profile.full_name}`,
-        body: text.length > 120 ? `${text.slice(0, 117)}...` : text,
+        body: text
+          ? text.length > 120
+            ? `${text.slice(0, 117)}...`
+            : text
+          : "📷 Sent a photo",
         url: "/chat",
       },
       { excludeUserId: auth.profile.id }

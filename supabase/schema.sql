@@ -113,9 +113,14 @@ create table if not exists messages (
   id uuid primary key default gen_random_uuid(),
   room_id uuid references chat_rooms (id) on delete cascade,
   user_id uuid not null references profiles (id) on delete cascade,
-  body text not null,
+  body text,
+  image_url text,
   created_at timestamptz not null default now()
 );
+
+-- body used to be required; a message can now be image-only, so relax that.
+alter table messages alter column body drop not null;
+alter table messages add column if not exists image_url text;
 
 alter table messages add column if not exists room_id uuid references chat_rooms (id) on delete cascade;
 
@@ -296,3 +301,22 @@ drop policy if exists "users can delete their own event images" on storage.objec
 create policy "users can delete their own event images" on storage.objects
   for delete to authenticated
   using (bucket_id = 'event-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Storage (chat photo attachments) ------------------------------------------
+insert into storage.buckets (id, name, public)
+  values ('chat-images', 'chat-images', true)
+  on conflict (id) do nothing;
+
+drop policy if exists "chat images are publicly accessible" on storage.objects;
+create policy "chat images are publicly accessible" on storage.objects
+  for select using (bucket_id = 'chat-images');
+
+drop policy if exists "users can upload their own chat images" on storage.objects;
+create policy "users can upload their own chat images" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'chat-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "users can delete their own chat images" on storage.objects;
+create policy "users can delete their own chat images" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'chat-images' and (storage.foldername(name))[1] = auth.uid()::text);

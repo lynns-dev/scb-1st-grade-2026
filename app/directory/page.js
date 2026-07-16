@@ -7,6 +7,7 @@ import { uploadAvatar, uploadChildPhoto } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
 import NotificationsToggle from "@/components/NotificationsToggle";
+import { SkeletonCards } from "@/components/Skeleton";
 
 function EditMyInfo({ profile, onSaved }) {
   const [childName, setChildName] = useState(profile.child_name || "");
@@ -200,7 +201,7 @@ export default function DirectoryPage() {
         Classroom families
       </h2>
       {loading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <SkeletonCards count={3} height="h-14" />
       ) : (
         <ul className="space-y-2">
           {parents.map((p) => (
