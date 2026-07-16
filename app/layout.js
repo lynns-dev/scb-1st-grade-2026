@@ -1,20 +1,14 @@
-import { Fraunces, Nunito } from "next/font/google";
+import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 
-// Nunito for body/UI text, Fraunces (a warm serif) for headings and the
-// wordmark — both self-hosted at build time via next/font so they actually
-// render for everyone with no external request.
-const nunito = Nunito({
+// Monotype Grotesque isn't freely licensable for web embedding, so most
+// visitors would just see the fallback sans-serif anyway. Hanken Grotesk is
+// a free, genuinely grotesque-style face with a similar neutral character —
+// self-hosted at build time via next/font, and used for every bit of text
+// in the app (headings included) — one sans-serif, no mixed typefaces.
+const hankenGrotesk = Hanken_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-body",
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "900"],
-  variable: "--font-heading",
   display: "swap",
 });
 
@@ -38,7 +32,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${nunito.variable} ${fraunces.variable}`}>
+    <html lang="en" className={hankenGrotesk.variable}>
       <body className="min-h-screen">{children}</body>
     </html>
   );

@@ -35,7 +35,6 @@ module.exports = {
       },
       fontFamily: {
         sans: ["var(--font-body)", "Helvetica Neue", "Arial", "sans-serif"],
-        serif: ["var(--font-heading)", "Georgia", "serif"],
       },
       boxShadow: {
         card: "0 1px 2px rgba(20, 24, 60, 0.06), 0 1px 12px rgba(20, 24, 60, 0.05)",

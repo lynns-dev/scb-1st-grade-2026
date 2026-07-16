@@ -18,8 +18,8 @@ const ICONS = {
   ),
   admin: (
     <>
-      <circle cx="12" cy="8" r="3.2" />
-      <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" />
+      <path d="M12 3.5 14.5 9l6 .6-4.5 4 1.3 5.9L12 16.7l-5.3 2.8L8 13.6l-4.5-4 6-.6Z" />
+      <circle cx="12" cy="11" r="1.6" fill="currentColor" stroke="none" />
     </>
   ),
   directory: (
@@ -30,14 +30,15 @@ const ICONS = {
   ),
 };
 
-// Each tab gets its own color, Brightwheel-style, instead of one uniform
-// brand color — makes the row easier to scan at a glance.
+// "The Village" brand: one blueberry tone across the row, with the Admin
+// tab picked out in honey (gold) — a star, matching the room admin's
+// special role rather than being just another item in the row.
 const COLORS = {
-  home: { fg: "#2563eb", bg: "#dbeafe" }, // blue
-  calendar: { fg: "#0d9488", bg: "#ccfbf1" }, // teal
-  chat: { fg: "#db2777", bg: "#fce7f3" }, // pink
-  directory: { fg: "#7c3aed", bg: "#ede9fe" }, // violet
-  admin: { fg: "#d97706", bg: "#fef3c7" }, // amber
+  home: { fg: "text-brand-600", bg: "bg-brand-100" },
+  calendar: { fg: "text-brand-600", bg: "bg-brand-100" },
+  chat: { fg: "text-brand-600", bg: "bg-brand-100" },
+  directory: { fg: "text-brand-600", bg: "bg-brand-100" },
+  admin: { fg: "text-accent-600", bg: "bg-accent-100" },
 };
 
 const GRID_COLS = { 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
@@ -83,18 +84,18 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-200"
-              style={{ color: color.fg }}
+              className={`flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-200 ${color.fg}`}
             >
               <span className="relative flex h-8 w-8 items-center justify-center">
                 <span
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200"
-                  style={{ backgroundColor: active ? color.bg : "transparent" }}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 ${
+                    active ? color.bg : ""
+                  }`}
                 >
                   <Icon name={item.icon} />
                 </span>
                 {item.icon === "chat" && unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-500 px-1 text-[9px] font-bold text-white">
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}

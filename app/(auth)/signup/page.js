@@ -105,7 +105,7 @@ function SignupForm() {
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-12 safe-top safe-bottom">
       <div className="mb-6 text-center">
         <Logo size={56} className="mx-auto mb-3 block rounded-2xl shadow-card" />
-        <h1 className="font-serif text-3xl font-semibold text-slate-900">Join the classroom</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Join the classroom</h1>
         <p className="mt-1 text-sm text-slate-500">
           Ask your room parent for the invite code.
         </p>

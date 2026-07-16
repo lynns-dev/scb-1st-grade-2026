@@ -103,12 +103,16 @@ create table if not exists reminders (
   week_of date not null default date_trunc('week', now())::date,
   publish_at timestamptz not null default now(),
   notified_at timestamptz,
+  attachment_url text,
+  attachment_name text,
   created_by uuid references profiles (id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 alter table reminders add column if not exists publish_at timestamptz not null default now();
 alter table reminders add column if not exists notified_at timestamptz;
+alter table reminders add column if not exists attachment_url text;
+alter table reminders add column if not exists attachment_name text;
 
 -- Reminders created before scheduling existed have no way to have been
 -- "scheduled", so backfill notified_at so the publish-reminders cron
@@ -386,3 +390,25 @@ drop policy if exists "users can delete their own chat images" on storage.object
 create policy "users can delete their own chat images" on storage.objects
   for delete to authenticated
   using (bucket_id = 'chat-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Storage (reminder attachments) ---------------------------------------------
+-- Any file type (permission slips, flyers, forms), not just images — only
+-- admins ever upload here (see app/api/reminders), but the bucket policy
+-- itself just follows the same per-uploader-folder pattern as the others.
+insert into storage.buckets (id, name, public)
+  values ('reminder-attachments', 'reminder-attachments', true)
+  on conflict (id) do nothing;
+
+drop policy if exists "reminder attachments are publicly accessible" on storage.objects;
+create policy "reminder attachments are publicly accessible" on storage.objects
+  for select using (bucket_id = 'reminder-attachments');
+
+drop policy if exists "users can upload their own reminder attachments" on storage.objects;
+create policy "users can upload their own reminder attachments" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'reminder-attachments' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "users can delete their own reminder attachments" on storage.objects;
+create policy "users can delete their own reminder attachments" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'reminder-attachments' and (storage.foldername(name))[1] = auth.uid()::text);

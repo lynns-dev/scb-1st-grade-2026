@@ -18,7 +18,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-body), "Helvetica Neue", Arial, sans-serif;
   color: oklch(0.22 0.035 250) !important;
 }
 

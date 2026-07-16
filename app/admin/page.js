@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
+import { uploadReminderAttachment } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
@@ -108,11 +109,65 @@ function AssistantPanel({ onAction }) {
   );
 }
 
-function ReminderForm({ onCreated }) {
+function AttachmentPicker({ userId, attachmentUrl, attachmentName, onChange }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
+
+  async function handlePick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setUploading(true);
+
+    try {
+      const supabase = createClient();
+      const publicUrl = await uploadReminderAttachment(supabase, userId, file);
+      onChange({ attachmentUrl: publicUrl, attachmentName: file.name });
+    } catch (err) {
+      setError(err.message || "Couldn't upload that file.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div>
+      {attachmentUrl ? (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
+          <span className="min-w-0 truncate text-slate-700">📎 {attachmentName || "Attachment"}</span>
+          <button
+            type="button"
+            onClick={() => onChange({ attachmentUrl: "", attachmentName: "" })}
+            className="flex-none text-xs font-medium text-red-500"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-brand-600 disabled:opacity-50"
+        >
+          {uploading ? "Uploading…" : "📎 Attach a file (optional)"}
+        </button>
+      )}
+      <input ref={fileInputRef} type="file" className="hidden" onChange={handlePick} />
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+function ReminderForm({ onCreated, userId }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachmentName, setAttachmentName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -128,7 +183,7 @@ function ReminderForm({ onCreated }) {
     const res = await fetch("/api/reminders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body, publishAt }),
+      body: JSON.stringify({ title, body, publishAt, attachmentUrl, attachmentName }),
     });
     const data = await res.json().catch(() => ({}));
 
@@ -141,6 +196,8 @@ function ReminderForm({ onCreated }) {
     setBody("");
     setScheduleDate("");
     setScheduleTime("");
+    setAttachmentUrl("");
+    setAttachmentName("");
     onCreated();
   }
 
@@ -159,6 +216,15 @@ function ReminderForm({ onCreated }) {
         onChange={(e) => setBody(e.target.value)}
         rows={2}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      />
+      <AttachmentPicker
+        userId={userId}
+        attachmentUrl={attachmentUrl}
+        attachmentName={attachmentName}
+        onChange={({ attachmentUrl: url, attachmentName: name }) => {
+          setAttachmentUrl(url);
+          setAttachmentName(name);
+        }}
       />
       <div>
         <p className="mb-1 text-xs font-medium text-slate-500">
@@ -192,12 +258,14 @@ function ReminderForm({ onCreated }) {
   );
 }
 
-function ReminderRow({ reminder, index, onChanged }) {
+function ReminderRow({ reminder, index, onChanged, userId }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(reminder.title);
   const [body, setBody] = useState(reminder.body || "");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
+  const [attachmentUrl, setAttachmentUrl] = useState(reminder.attachment_url || "");
+  const [attachmentName, setAttachmentName] = useState(reminder.attachment_name || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -209,6 +277,8 @@ function ReminderRow({ reminder, index, onChanged }) {
     const d = new Date(reminder.publish_at);
     setScheduleDate(d.toISOString().slice(0, 10));
     setScheduleTime(d.toTimeString().slice(0, 5));
+    setAttachmentUrl(reminder.attachment_url || "");
+    setAttachmentName(reminder.attachment_name || "");
     setError("");
     setEditing(true);
   }
@@ -225,7 +295,7 @@ function ReminderRow({ reminder, index, onChanged }) {
     const res = await fetch(`/api/reminders/${reminder.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body, publishAt }),
+      body: JSON.stringify({ title, body, publishAt, attachmentUrl, attachmentName }),
     });
     const data = await res.json().catch(() => ({}));
 
@@ -258,6 +328,15 @@ function ReminderRow({ reminder, index, onChanged }) {
             onChange={(e) => setBody(e.target.value)}
             rows={2}
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <AttachmentPicker
+            userId={userId}
+            attachmentUrl={attachmentUrl}
+            attachmentName={attachmentName}
+            onChange={({ attachmentUrl: url, attachmentName: name }) => {
+              setAttachmentUrl(url);
+              setAttachmentName(name);
+            }}
           />
           <div className="flex gap-2">
             <input
@@ -303,6 +382,11 @@ function ReminderRow({ reminder, index, onChanged }) {
       <div className="min-w-0">
         <p className="text-sm font-semibold text-slate-900">{reminder.title}</p>
         {reminder.body && <p className="text-xs text-slate-500">{reminder.body}</p>}
+        {reminder.attachment_url && (
+          <p className="mt-1 text-xs font-medium text-brand-600">
+            📎 {reminder.attachment_name || "Attachment"}
+          </p>
+        )}
         {scheduled && (
           <p className="mt-1 text-xs font-medium text-amber-600">
             ⏱ Scheduled for{" "}
@@ -702,7 +786,7 @@ export default function AdminPage() {
     const [{ data: r }, { data: e }, { data: l }] = await Promise.all([
       supabase
         .from("reminders")
-        .select("id, title, body, publish_at, created_at")
+        .select("id, title, body, publish_at, attachment_url, attachment_name, created_at")
         .order("created_at", { ascending: false }),
       supabase
         .from("events")
@@ -745,10 +829,10 @@ export default function AdminPage() {
       </Section>
 
       <Section title="Post a reminder">
-        <ReminderForm onCreated={refresh} />
+        <ReminderForm onCreated={refresh} userId={profile.id} />
         <ul className="space-y-2">
           {reminders.map((r, i) => (
-            <ReminderRow key={r.id} reminder={r} index={i} onChanged={refresh} />
+            <ReminderRow key={r.id} reminder={r} index={i} onChanged={refresh} userId={profile.id} />
           ))}
         </ul>
       </Section>

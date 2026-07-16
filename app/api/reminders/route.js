@@ -30,6 +30,8 @@ export const POST = withApiError(async (request) => {
       week_of: body.weekOf || publishAt.toISOString().slice(0, 10),
       publish_at: publishAt.toISOString(),
       notified_at: isImmediate ? new Date().toISOString() : null,
+      attachment_url: body.attachmentUrl || null,
+      attachment_name: body.attachmentName || null,
       created_by: auth.profile.id,
     })
     .select()

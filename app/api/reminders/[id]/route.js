@@ -22,6 +22,10 @@ export const PATCH = withApiError(async (request, { params }) => {
     updates.title = body.title.trim();
   }
   if (typeof body.body === "string") updates.body = body.body.trim() || null;
+  if ("attachmentUrl" in body) {
+    updates.attachment_url = body.attachmentUrl || null;
+    updates.attachment_name = body.attachmentName || null;
+  }
   if (body.publishAt) {
     const publishAt = new Date(body.publishAt);
     if (Number.isNaN(publishAt.getTime())) {
