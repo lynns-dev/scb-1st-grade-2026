@@ -12,7 +12,7 @@ export const POST = withApiError(async (request) => {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { email, password, fullName, childName, phone, inviteCode } = body;
+  const { email, password, fullName, childName, phone, inviteCode, familyCode } = body;
 
   if (!email || !password || !fullName || !inviteCode) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -36,6 +36,37 @@ export const POST = withApiError(async (request) => {
 
   const admin = createAdminClient();
 
+  // Resolve which family this account belongs to before creating anything:
+  // either join an existing one (a co-parent using the family code from
+  // Directory), or start a new one for this child.
+  let familyId;
+  let createdNewFamily = false;
+
+  if (familyCode) {
+    const { data: existingFamily } = await admin
+      .from("families")
+      .select("id")
+      .ilike("invite_code", familyCode.trim())
+      .maybeSingle();
+
+    if (!existingFamily) {
+      return NextResponse.json({ error: "Family code not recognized" }, { status: 400 });
+    }
+    familyId = existingFamily.id;
+  } else {
+    const { data: newFamily, error: familyError } = await admin
+      .from("families")
+      .insert({ child_name: childName || null })
+      .select("id")
+      .single();
+
+    if (familyError) {
+      return NextResponse.json({ error: familyError.message }, { status: 500 });
+    }
+    familyId = newFamily.id;
+    createdNewFamily = true;
+  }
+
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
     password,
@@ -43,6 +74,7 @@ export const POST = withApiError(async (request) => {
   });
 
   if (createError) {
+    if (createdNewFamily) await admin.from("families").delete().eq("id", familyId);
     const message = createError.message.includes("already registered")
       ? "An account with that email already exists — try logging in instead."
       : createError.message;
@@ -53,13 +85,14 @@ export const POST = withApiError(async (request) => {
     id: created.user.id,
     email,
     full_name: fullName,
-    child_name: childName || null,
     phone: phone || null,
     role,
+    family_id: familyId,
   });
 
   if (profileError) {
     await admin.auth.admin.deleteUser(created.user.id);
+    if (createdNewFamily) await admin.from("families").delete().eq("id", familyId);
     return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
 

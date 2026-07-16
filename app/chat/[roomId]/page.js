@@ -60,7 +60,9 @@ export default function ChatRoomPage({ params }) {
         supabase.from("chat_rooms").select("name, is_default").eq("id", roomId).single(),
         supabase
           .from("messages")
-          .select("id, body, image_url, created_at, user_id, profiles ( full_name, avatar_url, child_name )")
+          .select(
+            "id, body, image_url, created_at, user_id, profiles ( full_name, avatar_url, families ( child_name ) )"
+          )
           .eq("room_id", roomId)
           .order("created_at", { ascending: true })
           .limit(200),
@@ -84,7 +86,7 @@ export default function ChatRoomPage({ params }) {
         async (payload) => {
           const { data } = await supabase
             .from("profiles")
-            .select("full_name, avatar_url, child_name")
+            .select("full_name, avatar_url, families ( child_name )")
             .eq("id", payload.new.user_id)
             .single();
 
@@ -180,8 +182,10 @@ export default function ChatRoomPage({ params }) {
                   <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                     <span className="mb-0.5 px-1 text-[11px] text-slate-400">
                       {mine ? "You" : m.profiles?.full_name || "A parent"}
-                      {m.profiles?.child_name ? ` (${m.profiles.child_name}'s parent)` : ""} ·{" "}
-                      {formatTime(m.created_at)}
+                      {m.profiles?.families?.child_name
+                        ? ` (${m.profiles.families.child_name}'s parent)`
+                        : ""}{" "}
+                      · {formatTime(m.created_at)}
                     </span>
                     <div
                       className={`max-w-[75vw] rounded-2xl px-4 py-2 text-sm shadow-card ${

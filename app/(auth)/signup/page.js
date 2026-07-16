@@ -1,13 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { uploadChildPhoto } from "@/lib/uploadFile";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState({
     fullName: "",
     childName: "",
@@ -15,12 +24,18 @@ export default function SignupPage() {
     phone: "",
     password: "",
     inviteCode: "",
+    familyCode: "",
   });
   const [childPhoto, setChildPhoto] = useState(null);
   const [childPhotoPreview, setChildPhotoPreview] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const childFileInputRef = useRef(null);
+
+  useEffect(() => {
+    const code = searchParams.get("familyCode");
+    if (code) setForm((f) => ({ ...f, familyCode: code }));
+  }, [searchParams]);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -109,43 +124,64 @@ export default function SignupPage() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">
-            Child&apos;s name <span className="text-slate-400">(optional)</span>
+            Family code <span className="text-slate-400">(optional — joining a spouse/co-parent?)</span>
           </label>
           <input
-            value={form.childName}
-            onChange={update("childName")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            value={form.familyCode}
+            onChange={update("familyCode")}
+            placeholder="e.g. A1B2C3D4"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base uppercase shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
+          {form.familyCode.trim() && (
+            <p className="mt-1 text-xs text-slate-500">
+              You&apos;ll share your child&apos;s existing profile with that account — no need to fill in
+              their name/photo below.
+            </p>
+          )}
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Child&apos;s photo <span className="text-slate-400">(optional — shown on the home screen)</span>
-          </label>
-          <div className="flex items-center gap-3">
-            {childPhotoPreview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={childPhotoPreview}
-                alt="Preview"
-                className="h-14 w-14 flex-none rounded-full object-cover"
+        {!form.familyCode.trim() && (
+          <>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Child&apos;s name <span className="text-slate-400">(optional)</span>
+              </label>
+              <input
+                value={form.childName}
+                onChange={update("childName")}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
               />
-            )}
-            <button
-              type="button"
-              onClick={() => childFileInputRef.current?.click()}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-brand-600 shadow-sm"
-            >
-              {childPhotoPreview ? "Change photo" : "Add a photo"}
-            </button>
-            <input
-              ref={childFileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleChildPhotoPick}
-            />
-          </div>
-        </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Child&apos;s photo <span className="text-slate-400">(optional — shown on the home screen)</span>
+              </label>
+              <div className="flex items-center gap-3">
+                {childPhotoPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={childPhotoPreview}
+                    alt="Preview"
+                    className="h-14 w-14 flex-none rounded-full object-cover"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => childFileInputRef.current?.click()}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-brand-600 shadow-sm"
+                >
+                  {childPhotoPreview ? "Change photo" : "Add a photo"}
+                </button>
+                <input
+                  ref={childFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleChildPhotoPick}
+                />
+              </div>
+            </div>
+          </>
+        )}
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">
             Email <span className="text-slate-400">(shown to other parents)</span>

@@ -116,7 +116,9 @@ function EditMyInfo({ profile, onSaved }) {
       <div className="mb-3 flex items-center gap-3 border-t border-slate-100 pt-3">
         <Avatar src={profile.child_avatar_url} name={profile.child_name} size={56} />
         <div>
-          <p className="text-xs text-slate-400">Shown on the home screen</p>
+          <p className="text-xs text-slate-400">
+            Shown on the home screen — shared with any co-parent linked to your family
+          </p>
           <button
             type="button"
             onClick={() => childFileInputRef.current?.click()}
@@ -162,18 +164,70 @@ function EditMyInfo({ profile, onSaved }) {
   );
 }
 
+function InviteCoParent() {
+  const [inviteCode, setInviteCode] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/family/invite-code")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setInviteCode(data?.inviteCode || ""))
+      .catch(() => {});
+  }, []);
+
+  const link =
+    inviteCode && typeof window !== "undefined"
+      ? `${window.location.origin}/signup?familyCode=${inviteCode}`
+      : "";
+
+  async function handleCopy() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API can fail without HTTPS/permission — the code is still
+      // shown on screen so they can copy it manually.
+    }
+  }
+
+  if (!inviteCode) return null;
+
+  return (
+    <div className="mb-6 rounded-2xl bg-white p-4 shadow-card">
+      <p className="text-sm font-semibold text-slate-900">Invite your child&apos;s other parent</p>
+      <p className="mt-1 text-xs text-slate-500">
+        So they get their own login and show up in chat as themselves, instead of a duplicate
+        entry for the same kid.
+      </p>
+      <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+        <code className="flex-1 truncate text-sm font-semibold tracking-wide text-slate-700">
+          {inviteCode}
+        </code>
+        <button
+          onClick={handleCopy}
+          className="flex-none rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white"
+        >
+          {copied ? "Copied!" : "Copy link"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function DirectoryPage() {
   const { profile } = useProfile();
-  const [parents, setParents] = useState([]);
+  const [families, setFamilies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
     const supabase = createClient();
     const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, child_name, email, phone, avatar_url")
-      .order("full_name", { ascending: true });
-    setParents(data || []);
+      .from("families")
+      .select("id, child_name, child_avatar_url, profiles ( id, full_name, email, phone, avatar_url )")
+      .order("child_name", { ascending: true });
+    setFamilies(data || []);
     setLoading(false);
   }
 
@@ -198,28 +252,39 @@ export default function DirectoryPage() {
         />
       )}
 
+      <InviteCoParent />
+
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
         Classroom families
       </h2>
       {loading ? (
-        <SkeletonCards count={3} height="h-14" />
+        <SkeletonCards count={3} height="h-20" />
       ) : (
-        <ul className="space-y-2">
-          {parents.map((p, i) => (
+        <ul className="space-y-3">
+          {families.map((f, i) => (
             <li
-              key={p.id}
-              className="animate-fade-in-item flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card"
+              key={f.id}
+              className="animate-fade-in-item rounded-2xl bg-white p-3 shadow-card"
               style={staggerStyle(i)}
             >
-              <Avatar src={p.avatar_url} name={p.full_name} size={44} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-slate-900">{p.full_name}</p>
-                {p.child_name && (
-                  <p className="truncate text-xs text-slate-400">{p.child_name}&apos;s parent</p>
-                )}
-                <p className="truncate text-xs text-slate-500">{p.email}</p>
-                {p.phone && <p className="truncate text-xs text-slate-500">{p.phone}</p>}
+              <div className="mb-2 flex items-center gap-3">
+                <Avatar src={f.child_avatar_url} name={f.child_name} size={40} />
+                <p className="truncate font-semibold text-slate-900">
+                  {f.child_name || "Family"}
+                </p>
               </div>
+              <ul className="space-y-2 border-t border-slate-100 pt-2">
+                {(f.profiles || []).map((p) => (
+                  <li key={p.id} className="flex items-center gap-3">
+                    <Avatar src={p.avatar_url} name={p.full_name} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-800">{p.full_name}</p>
+                      <p className="truncate text-xs text-slate-500">{p.email}</p>
+                      {p.phone && <p className="truncate text-xs text-slate-500">{p.phone}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

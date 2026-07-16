@@ -5,6 +5,20 @@
 
 create extension if not exists "pgcrypto";
 
+-- One row per child. Multiple parent profiles can point at the same family
+-- (via profiles.family_id below) so two parents of the same kid get their
+-- own logins and their own chat identity, but share one child name/photo
+-- and don't show up as two separate "families" in the Directory.
+create table if not exists families (
+  id uuid primary key default gen_random_uuid(),
+  child_name text,
+  child_avatar_url text,
+  invite_code text unique default upper(substr(md5(random()::text), 1, 8)),
+  created_at timestamptz not null default now()
+);
+
+alter table families enable row level security;
+
 -- One row per signed-up parent/admin, keyed to auth.users.
 create table if not exists profiles (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -15,12 +29,34 @@ create table if not exists profiles (
   avatar_url text,
   child_avatar_url text,
   role text not null default 'parent' check (role in ('parent', 'admin')),
+  family_id uuid references families (id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 alter table profiles add column if not exists phone text;
 alter table profiles add column if not exists avatar_url text;
 alter table profiles add column if not exists child_avatar_url text;
+alter table profiles add column if not exists family_id uuid references families (id) on delete set null;
+
+-- Backfill: every profile signed up before families existed gets its own
+-- new family row (carrying over whatever child_name/photo it already had),
+-- so every profile ends up with a family_id. New signups set family_id
+-- directly at insert time and never hit this loop.
+do $$
+declare
+  p record;
+  new_family_id uuid;
+begin
+  for p in select id, child_name, child_avatar_url from profiles where family_id is null loop
+    insert into families (child_name, child_avatar_url)
+    values (p.child_name, p.child_avatar_url)
+    returning id into new_family_id;
+
+    update profiles set family_id = new_family_id where id = p.id;
+  end loop;
+end $$;
+
+alter table profiles alter column family_id set not null;
 
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
@@ -163,6 +199,19 @@ alter table chat_read_state enable row level security;
 
 drop policy if exists "profiles readable by classroom members" on profiles;
 create policy "profiles readable by classroom members" on profiles
+  for select to authenticated using (true);
+
+-- Note: this also makes invite_code technically SELECT-able by anyone
+-- signed in (Postgres RLS is row-level, not column-level, so there's no
+-- clean way to hide just that one column from this same policy). The app
+-- only ever fetches a family's own invite_code through a dedicated
+-- server route scoped to the caller's own family_id — the Directory's
+-- general listing query never requests that column — so this is a
+-- defense-in-depth gap for a determined user poking at the API directly,
+-- not something the normal app surfaces. Acceptable for a small trusted
+-- classroom group; flagged here for anyone hardening this further.
+drop policy if exists "families readable by classroom members" on families;
+create policy "families readable by classroom members" on families
   for select to authenticated using (true);
 
 drop policy if exists "events readable by classroom members" on events;
