@@ -8,6 +8,7 @@ import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
 import NotificationsToggle from "@/components/NotificationsToggle";
 import { SkeletonCards } from "@/components/Skeleton";
+import { staggerStyle } from "@/lib/stagger";
 
 function EditMyInfo({ profile, onSaved }) {
   const [childName, setChildName] = useState(profile.child_name || "");
@@ -204,8 +205,12 @@ export default function DirectoryPage() {
         <SkeletonCards count={3} height="h-14" />
       ) : (
         <ul className="space-y-2">
-          {parents.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
+          {parents.map((p, i) => (
+            <li
+              key={p.id}
+              className="animate-fade-in-item flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card"
+              style={staggerStyle(i)}
+            >
               <Avatar src={p.avatar_url} name={p.full_name} size={44} />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-slate-900">{p.full_name}</p>

@@ -8,6 +8,7 @@ import { uploadEventImage } from "@/lib/uploadFile";
 import { startOfWeek, addDays, isSameDay } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
+import { staggerStyle } from "@/lib/stagger";
 
 function groupByMonth(events) {
   const groups = new Map();
@@ -22,13 +23,16 @@ function groupByMonth(events) {
   return groups;
 }
 
-function EventCard({ event, profile, onDelete, showDateBadge = true }) {
+function EventCard({ event, profile, onDelete, showDateBadge = true, index = 0 }) {
   const start = new Date(event.start_at);
   const isBirthday = event.event_type === "birthday";
   const mine = event.created_by === profile?.id;
 
   return (
-    <li className="flex gap-3 rounded-2xl bg-white p-4 shadow-card">
+    <li
+      className="animate-fade-in-item flex gap-3 rounded-2xl bg-white p-4 shadow-card"
+      style={staggerStyle(index)}
+    >
       {showDateBadge && (
         <div className="flex w-12 flex-none flex-col items-center justify-center rounded-xl bg-brand-50 py-1.5 text-brand-600">
           <span className="text-[10px] font-semibold uppercase">
@@ -283,8 +287,15 @@ function WeekView({ events, profile, onDelete }) {
               <p className="text-xs text-slate-400">No events</p>
             ) : (
               <ul className="space-y-2">
-                {dayEvents.map((e) => (
-                  <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} showDateBadge={false} />
+                {dayEvents.map((e, i) => (
+                  <EventCard
+                    key={e.id}
+                    event={e}
+                    profile={profile}
+                    onDelete={onDelete}
+                    showDateBadge={false}
+                    index={i}
+                  />
                 ))}
               </ul>
             )}
@@ -310,8 +321,8 @@ function MonthView({ events, profile, onDelete }) {
     <section key={month} className="mb-6">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">{month}</h2>
       <ul className="space-y-3">
-        {monthEvents.map((e) => (
-          <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} />
+        {monthEvents.map((e, i) => (
+          <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} index={i} />
         ))}
       </ul>
     </section>

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
+import { staggerStyle } from "@/lib/stagger";
 
 function Section({ title, children }) {
   return (
@@ -311,12 +312,13 @@ export default function AdminPage() {
       <Section title="Post a reminder">
         <ReminderForm onCreated={refresh} />
         <ul className="space-y-2">
-          {reminders.map((r) => {
+          {reminders.map((r, i) => {
             const scheduled = new Date(r.publish_at).getTime() > Date.now();
             return (
               <li
                 key={r.id}
-                className="flex items-start justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+                className="animate-fade-in-item flex items-start justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+                style={staggerStyle(i)}
               >
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{r.title}</p>
@@ -348,10 +350,11 @@ export default function AdminPage() {
       <Section title="Add a calendar event">
         <EventForm onCreated={refresh} />
         <ul className="space-y-2">
-          {events.map((e) => (
+          {events.map((e, i) => (
             <li
               key={e.id}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+              className="animate-fade-in-item flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+              style={staggerStyle(i)}
             >
               <div>
                 <p className="text-sm font-semibold text-slate-900">{e.title}</p>

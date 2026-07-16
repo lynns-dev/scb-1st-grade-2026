@@ -9,6 +9,7 @@ import { startOfWeek } from "@/lib/dateUtils";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
 import { SkeletonCards } from "@/components/Skeleton";
+import { staggerStyle } from "@/lib/stagger";
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -82,8 +83,12 @@ export default function HomePage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {reminders.map((r) => (
-              <li key={r.id} className="rounded-2xl bg-white p-4 shadow-card">
+            {reminders.map((r, i) => (
+              <li
+                key={r.id}
+                className="animate-fade-in-item rounded-2xl bg-white p-4 shadow-card"
+                style={staggerStyle(i)}
+              >
                 <p className="font-semibold text-slate-900">{r.title}</p>
                 {r.body && <p className="mt-1 text-sm text-slate-500">{r.body}</p>}
               </li>
@@ -109,8 +114,12 @@ export default function HomePage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {events.map((e) => (
-              <li key={e.id} className="rounded-2xl bg-white p-4 shadow-card">
+            {events.map((e, i) => (
+              <li
+                key={e.id}
+                className="animate-fade-in-item rounded-2xl bg-white p-4 shadow-card"
+                style={staggerStyle(i)}
+              >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-900">
                     {e.event_type === "birthday" && "🎂 "}

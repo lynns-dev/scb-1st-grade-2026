@@ -7,6 +7,7 @@ import { uploadChatImage } from "@/lib/uploadFile";
 import Avatar from "@/components/Avatar";
 import AppShell from "@/components/AppShell";
 import Skeleton from "@/components/Skeleton";
+import { staggerStyle } from "@/lib/stagger";
 
 function formatTime(iso) {
   return new Date(iso).toLocaleTimeString(undefined, {
@@ -167,10 +168,14 @@ export default function ChatRoomPage({ params }) {
               No messages yet — say hi!
             </div>
           ) : (
-            messages.map((m) => {
+            messages.map((m, i) => {
               const mine = m.user_id === profile?.id;
               return (
-                <div key={m.id} className={`flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                <div
+                  key={m.id}
+                  className={`animate-fade-in-item flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}
+                  style={staggerStyle(i)}
+                >
                   <Avatar src={m.profiles?.avatar_url} name={m.profiles?.full_name} size={28} />
                   <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                     <span className="mb-0.5 px-1 text-[11px] text-slate-400">

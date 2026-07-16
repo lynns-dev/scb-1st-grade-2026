@@ -7,6 +7,7 @@ import { useProfile } from "@/lib/useProfile";
 import { useUnreadCounts } from "@/lib/useUnreadCounts";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
+import { staggerStyle } from "@/lib/stagger";
 
 function NewRoomForm({ parents, onCreated, onCancel }) {
   const [name, setName] = useState("");
@@ -149,10 +150,10 @@ export default function ChatListPage() {
         <SkeletonCards count={2} height="h-14" />
       ) : (
         <ul className="space-y-2">
-          {rooms.map((r) => {
+          {rooms.map((r, i) => {
             const unread = counts[r.id] || 0;
             return (
-              <li key={r.id}>
+              <li key={r.id} className="animate-fade-in-item" style={staggerStyle(i)}>
                 <Link
                   href={`/chat/${r.id}`}
                   className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-card"
