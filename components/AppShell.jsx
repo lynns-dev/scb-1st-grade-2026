@@ -6,6 +6,7 @@ import { useProfile } from "@/lib/useProfile";
 import { useUnreadCounts } from "@/lib/useUnreadCounts";
 import BottomNav from "./BottomNav";
 import InstallPrompt from "./InstallPrompt";
+import NotificationsPrompt from "./NotificationsPrompt";
 
 export default function AppShell({ title, backHref, children }) {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function AppShell({ title, backHref, children }) {
 
       <main className="mx-auto max-w-lg px-3 py-5">
         <InstallPrompt />
+        <NotificationsPrompt />
         <div className="animate-fade-in">{children}</div>
       </main>
 

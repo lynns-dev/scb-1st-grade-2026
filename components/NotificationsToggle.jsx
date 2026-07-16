@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isIOS, isStandalone } from "@/lib/platform";
 import {
   isPushSupported,
   getPushSubscription,
@@ -10,12 +11,14 @@ import {
 
 export default function NotificationsToggle() {
   const [supported, setSupported] = useState(false);
+  const [needsInstall, setNeedsInstall] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     setSupported(isPushSupported());
+    setNeedsInstall(isIOS() && !isStandalone());
     getPushSubscription().then((sub) => setEnabled(!!sub));
   }, []);
 
@@ -39,6 +42,18 @@ export default function NotificationsToggle() {
   }
 
   if (!supported) return null;
+
+  if (needsInstall) {
+    return (
+      <div className="mb-6 rounded-2xl bg-white p-4 shadow-card">
+        <p className="text-sm font-semibold text-slate-900">🔔 Notifications</p>
+        <p className="mt-1 text-xs text-slate-500">
+          On iPhone, notifications only work once this app is added to your Home Screen: tap the
+          Share button, then &quot;Add to Home Screen&quot; — then come back here to turn them on.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6 flex items-center justify-between rounded-2xl bg-white p-4 shadow-card">

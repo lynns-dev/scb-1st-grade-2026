@@ -1,19 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isStandalone, isIOS } from "@/lib/platform";
 
 const DISMISS_KEY = "install-prompt-dismissed";
-
-function isStandalone() {
-  return (
-    typeof window !== "undefined" &&
-    (window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true)
-  );
-}
-
-function isIOS() {
-  return typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
 
 export default function InstallPrompt() {
   const [dismissed, setDismissed] = useState(true);

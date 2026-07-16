@@ -22,9 +22,10 @@ and Claude.
   can reach out directly about birthday parties and playdates
 - **Weekly email digest** — everyone gets an email every week with the
   reminders and upcoming events, even if they never open the app
-- **Phone notifications** — parents can turn on push notifications
-  (Directory tab) and get alerted the moment a new reminder or chat message
-  goes out, even with the app closed
+- **Phone notifications** — prompted automatically at signup and on first
+  open (also available anytime from the Directory tab); once on, parents
+  get alerted the moment a new reminder or chat message goes out, even with
+  the app closed
 - **Admin** — the room parent gets an admin screen to post reminders and
   events by hand, *or* just type what she wants in plain English to an
   embedded Claude assistant ("remind everyone about picture day Friday")

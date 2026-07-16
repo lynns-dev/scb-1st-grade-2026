@@ -3,14 +3,18 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "SCB 1st Grade 2026", body: event.data ? event.data.text() : "" };
+    data = { title: "The Village", body: event.data ? event.data.text() : "" };
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "SCB 1st Grade 2026", {
+    self.registration.showNotification(data.title || "The Village", {
       body: data.body || "",
-      icon: "/icons/icon.svg",
-      badge: "/icons/icon.svg",
+      // PNG, not the SVG app icon — many platforms' notification/badge
+      // surfaces (Android status bar, Windows) don't reliably rasterize
+      // SVG here, so the icon can silently fail to show even though the
+      // notification itself still fires.
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
       data: { url: data.url || "/home" },
     })
   );

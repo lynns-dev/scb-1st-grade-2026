@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { uploadChildPhoto } from "@/lib/uploadFile";
+import { subscribeToPush } from "@/lib/pushClient";
 import Logo from "@/components/Logo";
 
 export default function SignupPage() {
@@ -94,6 +95,17 @@ function SignupForm() {
       } catch {
         // Not worth blocking signup over — they can add it later from Directory.
       }
+    }
+
+    // Ask for notifications right away instead of leaving it as a toggle
+    // parents have to go find later. Still requires them to tap "Allow" in
+    // the browser's own prompt — nothing can grant that silently — but this
+    // gets it in front of them at the one moment they're already engaged.
+    try {
+      await subscribeToPush();
+    } catch {
+      // Denied, unsupported, or not set up — NotificationsPrompt on Home
+      // will offer it again (unless they explicitly denied it).
     }
 
     setLoading(false);
