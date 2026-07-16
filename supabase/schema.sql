@@ -54,9 +54,19 @@ create table if not exists reminders (
   title text not null,
   body text,
   week_of date not null default date_trunc('week', now())::date,
+  publish_at timestamptz not null default now(),
+  notified_at timestamptz,
   created_by uuid references profiles (id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+alter table reminders add column if not exists publish_at timestamptz not null default now();
+alter table reminders add column if not exists notified_at timestamptz;
+
+-- Reminders created before scheduling existed have no way to have been
+-- "scheduled", so backfill notified_at so the publish-reminders cron
+-- doesn't try to (re-)notify everyone about old reminders on first run.
+update reminders set notified_at = created_at where notified_at is null;
 
 -- Web Push subscriptions, one row per device a parent has enabled
 -- notifications on. Only ever read/written server-side with the service
@@ -125,6 +135,7 @@ create table if not exists chat_read_state (
 
 create index if not exists events_start_at_idx on events (start_at);
 create index if not exists reminders_week_of_idx on reminders (week_of);
+create index if not exists reminders_publish_at_idx on reminders (publish_at);
 create index if not exists messages_room_created_at_idx on messages (room_id, created_at);
 create index if not exists chat_room_members_user_idx on chat_room_members (user_id);
 

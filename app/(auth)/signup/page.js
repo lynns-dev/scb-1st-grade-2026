@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { uploadChildPhoto } from "@/lib/uploadFile";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,11 +16,21 @@ export default function SignupPage() {
     password: "",
     inviteCode: "",
   });
+  const [childPhoto, setChildPhoto] = useState(null);
+  const [childPhotoPreview, setChildPhotoPreview] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const childFileInputRef = useRef(null);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  }
+
+  function handleChildPhotoPick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setChildPhoto(file);
+    setChildPhotoPreview(URL.createObjectURL(file));
   }
 
   async function handleSubmit(e) {
@@ -41,19 +52,35 @@ export default function SignupPage() {
     }
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const {
+      data: { user },
+      error: signInError,
+    } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     });
 
-    setLoading(false);
-
     if (signInError) {
+      setLoading(false);
       setError("Account created — please sign in.");
       router.push("/login");
       return;
     }
 
+    if (childPhoto && user) {
+      try {
+        const publicUrl = await uploadChildPhoto(supabase, user.id, childPhoto);
+        await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ childAvatarUrl: publicUrl }),
+        });
+      } catch {
+        // Not worth blocking signup over — they can add it later from Directory.
+      }
+    }
+
+    setLoading(false);
     router.push("/home");
     router.refresh();
   }
@@ -89,6 +116,35 @@ export default function SignupPage() {
             onChange={update("childName")}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Child&apos;s photo <span className="text-slate-400">(optional — shown on the home screen)</span>
+          </label>
+          <div className="flex items-center gap-3">
+            {childPhotoPreview && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={childPhotoPreview}
+                alt="Preview"
+                className="h-14 w-14 flex-none rounded-full object-cover"
+              />
+            )}
+            <button
+              type="button"
+              onClick={() => childFileInputRef.current?.click()}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-brand-600 shadow-sm"
+            >
+              {childPhotoPreview ? "Change photo" : "Add a photo"}
+            </button>
+            <input
+              ref={childFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleChildPhotoPick}
+            />
+          </div>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">

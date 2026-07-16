@@ -109,22 +109,37 @@ function AssistantPanel({ onAction }) {
 function ReminderForm({ onCreated }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
+    setError("");
+
+    const publishAt = scheduleDate
+      ? new Date(`${scheduleDate}T${scheduleTime || "08:00"}`).toISOString()
+      : undefined;
+
     const res = await fetch("/api/reminders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
+      body: JSON.stringify({ title, body, publishAt }),
     });
+    const data = await res.json().catch(() => ({}));
+
     setSaving(false);
-    if (res.ok) {
-      setTitle("");
-      setBody("");
-      onCreated();
+    if (!res.ok) {
+      setError(data.error || "Couldn't post that reminder.");
+      return;
     }
+    setTitle("");
+    setBody("");
+    setScheduleDate("");
+    setScheduleTime("");
+    onCreated();
   }
 
   return (
@@ -143,12 +158,33 @@ function ReminderForm({ onCreated }) {
         rows={2}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
       />
+      <div>
+        <p className="mb-1 text-xs font-medium text-slate-500">
+          Schedule for later (optional — leave blank to post now)
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={scheduleDate}
+            onChange={(e) => setScheduleDate(e.target.value)}
+            className="w-1/2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <input
+            type="time"
+            value={scheduleTime}
+            onChange={(e) => setScheduleTime(e.target.value)}
+            disabled={!scheduleDate}
+            className="w-1/2 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:opacity-50"
+          />
+        </div>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={saving}
         className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
       >
-        {saving ? "Posting…" : "Post reminder"}
+        {saving ? "Saving…" : scheduleDate ? "Schedule reminder" : "Post reminder"}
       </button>
     </form>
   );
@@ -219,7 +255,10 @@ export default function AdminPage() {
   async function refresh() {
     const supabase = createClient();
     const [{ data: r }, { data: e }] = await Promise.all([
-      supabase.from("reminders").select("id, title, body, created_at").order("created_at", { ascending: false }),
+      supabase
+        .from("reminders")
+        .select("id, title, body, publish_at, created_at")
+        .order("created_at", { ascending: false }),
       supabase
         .from("events")
         .select("id, title, start_at")
@@ -271,23 +310,37 @@ export default function AdminPage() {
       <Section title="Post a reminder">
         <ReminderForm onCreated={refresh} />
         <ul className="space-y-2">
-          {reminders.map((r) => (
-            <li
-              key={r.id}
-              className="flex items-start justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
-            >
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{r.title}</p>
-                {r.body && <p className="text-xs text-slate-500">{r.body}</p>}
-              </div>
-              <button
-                onClick={() => deleteReminder(r.id)}
-                className="flex-none text-xs font-medium text-red-500"
+          {reminders.map((r) => {
+            const scheduled = new Date(r.publish_at).getTime() > Date.now();
+            return (
+              <li
+                key={r.id}
+                className="flex items-start justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
               >
-                Delete
-              </button>
-            </li>
-          ))}
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{r.title}</p>
+                  {r.body && <p className="text-xs text-slate-500">{r.body}</p>}
+                  {scheduled && (
+                    <p className="mt-1 text-xs font-medium text-amber-600">
+                      ⏱ Scheduled for{" "}
+                      {new Date(r.publish_at).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteReminder(r.id)}
+                  className="flex-none text-xs font-medium text-red-500"
+                >
+                  Delete
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </Section>
 

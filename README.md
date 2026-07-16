@@ -6,6 +6,9 @@ and Claude.
 
 **What's in it:**
 - **Home** — this week's quick reminders + upcoming events at a glance
+- **Scheduled reminders** — the admin can post a reminder immediately or
+  schedule it for a future date/time; it stays hidden (no push, no email)
+  until then, so she can prep announcements ahead of time
 - **Calendar** — a week view by default (today highlighted, day-by-day, "No
   events" for empty days) with a Month view toggle for looking further out,
   plus a one-tap "Add to Google Calendar" link on every event
@@ -100,12 +103,21 @@ Visit `/signup` and create the first account using your admin invite code.
    Next.js (auto-detected).
 3. Add all the environment variables from `.env.example` in
    **Project Settings → Environment Variables**, then deploy.
-4. Vercel Cron (configured in `vercel.json`) will call
-   `/api/cron/weekly-digest` every **Sunday at 13:00 UTC** — adjust the
-   `schedule` in `vercel.json` for your timezone/day of choice
+4. Vercel Cron (configured in `vercel.json`) runs two jobs: `/api/cron/weekly-digest`
+   every **Sunday at 13:00 UTC**, and `/api/cron/publish-reminders` **daily
+   at 13:00 UTC** (this is what fires the push notification for a scheduled
+   reminder once its time arrives — the reminder itself appears in the app
+   right on schedule regardless, this only affects the push). Adjust the
+   `schedule` values in `vercel.json` for your timezone
    ([crontab.guru](https://crontab.guru) helps). Vercel automatically sends
    `Authorization: Bearer $CRON_SECRET` on cron requests once you've set
-   `CRON_SECRET`, which the route checks.
+   `CRON_SECRET`, which both routes check.
+
+   Note: Vercel's free/Hobby plan only runs each cron job **once a day**, so
+   a reminder scheduled for e.g. 2pm won't push until the next day's cron
+   run — the app itself still shows it exactly on time either way. This
+   only matters if you're on Hobby and want the push notification itself to
+   be prompt; upgrade to Pro if that precision matters to you.
 5. Once deployed, visit the site on a phone and use the browser's
    **"Add to Home Screen"** option (Safari: Share → Add to Home Screen;
    Chrome: menu → Install app) so it opens full-screen like a native app.
@@ -134,6 +146,9 @@ Visit `/signup` and create the first account using your admin invite code.
   direct client insert) so it has a hook to fan out push notifications
 - `app/api/push/subscribe` — saves/removes a device's push subscription
 - `app/api/cron/weekly-digest` — builds and sends the weekly email
+- `app/api/cron/publish-reminders` — daily job that pushes the notification
+  for any scheduled reminder whose time has arrived (visibility itself is
+  just a query filter, not cron-dependent)
 - `public/sw.js` — the service worker that receives and displays push
   notifications; `lib/pushClient.js`/`lib/pushNotify.js` are the client/
   server halves of the Web Push flow

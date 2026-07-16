@@ -35,6 +35,7 @@ export const GET = withApiError(async (request) => {
       .from("reminders")
       .select("title, body")
       .gte("week_of", weekStart)
+      .lte("publish_at", now.toISOString())
       .order("created_at", { ascending: false }),
     admin
       .from("events")

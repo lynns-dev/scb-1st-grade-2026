@@ -19,7 +19,14 @@ Today's date is ${new Date().toDateString()}. Resolve relative dates ("next Frid
 aren't sure which item she means, use the list tools first and ask her to confirm
 before deleting anything. Keep reminders short and parent-friendly. You only manage
 reminders and events — you have no access to parent accounts, chat messages, or
-anything outside this classroom app.`;
+anything outside this classroom app.
+
+Reminders can be scheduled ahead of time: create_reminder's publishAt argument controls
+when it goes live. If she just says what to post, post it immediately (omit publishAt).
+If she says something like "schedule this for Monday" or "don't post this until next
+week," set publishAt to that date/time instead — it'll stay hidden from parents and
+won't be emailed or pushed until then. Note in your reply when something is scheduled
+rather than posted right away, so she doesn't think you forgot.`;
 
 export const POST = withApiError(async (request) => {
   const auth = await requireAdmin();

@@ -35,6 +35,7 @@ export default function HomePage() {
           .from("reminders")
           .select("id, title, body, week_of, created_at")
           .gte("week_of", weekStart)
+          .lte("publish_at", new Date().toISOString())
           .order("created_at", { ascending: false }),
         supabase
           .from("events")

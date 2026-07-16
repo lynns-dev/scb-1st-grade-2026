@@ -15,13 +15,21 @@ export const POST = withApiError(async (request) => {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
   }
 
+  const publishAt = body.publishAt ? new Date(body.publishAt) : new Date();
+  if (Number.isNaN(publishAt.getTime())) {
+    return NextResponse.json({ error: "Invalid schedule date" }, { status: 400 });
+  }
+  const isImmediate = publishAt.getTime() <= Date.now();
+
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("reminders")
     .insert({
       title: body.title,
       body: body.body || null,
-      week_of: body.weekOf || new Date().toISOString().slice(0, 10),
+      week_of: body.weekOf || publishAt.toISOString().slice(0, 10),
+      publish_at: publishAt.toISOString(),
+      notified_at: isImmediate ? new Date().toISOString() : null,
       created_by: auth.profile.id,
     })
     .select()
@@ -29,7 +37,9 @@ export const POST = withApiError(async (request) => {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  await notifyNewReminder(admin, { title: data.title, excludeUserId: auth.profile.id });
+  if (isImmediate) {
+    await notifyNewReminder(admin, { title: data.title, excludeUserId: auth.profile.id });
+  }
 
   return NextResponse.json({ reminder: data });
 });
