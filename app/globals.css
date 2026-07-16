@@ -8,8 +8,8 @@ body {
 }
 
 body {
-  background: #faf6ef;
-  color: #1c2140;
+  background: oklch(0.98 0.01 60);
+  color: oklch(0.24 0.035 250);
   font-family: var(--font-body), "Helvetica Neue", Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
@@ -18,8 +18,8 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-body), "Helvetica Neue", Arial, sans-serif;
-  color: #000 !important;
+  font-family: var(--font-heading), Georgia, serif;
+  color: oklch(0.22 0.035 250) !important;
 }
 
 input,

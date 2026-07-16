@@ -1,4 +1,4 @@
-# SCB 1st Grade 2026 — Classroom Parent App
+# The Village — Classroom Parent App
 
 A mobile-first web app (installable to your phone's home screen, no app
 store needed) for our classroom family. Built with Next.js 14, Supabase,

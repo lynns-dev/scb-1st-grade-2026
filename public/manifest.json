@@ -1,11 +1,11 @@
 {
-  "name": "SCB 1st Grade 2026",
-  "short_name": "1st Grade",
+  "name": "The Village",
+  "short_name": "The Village",
   "description": "Weekly reminders, calendar, and room chat for our classroom family.",
   "start_url": "/home",
   "display": "standalone",
-  "background_color": "#f5f6fb",
-  "theme_color": "#4a63f2",
+  "background_color": "#fef7f2",
+  "theme_color": "#4f7eae",
   "orientation": "portrait",
   "icons": [
     {

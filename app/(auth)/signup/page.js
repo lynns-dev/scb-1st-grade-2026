@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { uploadChildPhoto } from "@/lib/uploadFile";
+import Logo from "@/components/Logo";
 
 export default function SignupPage() {
   return (
@@ -103,10 +104,8 @@ function SignupForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-12 safe-top safe-bottom">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 h-14 w-14 rounded-2xl bg-brand-500 text-white flex items-center justify-center text-xl font-bold shadow-card">
-          SC
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900">Join the classroom</h1>
+        <Logo size={56} className="mx-auto mb-3 block rounded-2xl shadow-card" />
+        <h1 className="font-serif text-3xl font-semibold text-slate-900">Join the classroom</h1>
         <p className="mt-1 text-sm text-slate-500">
           Ask your room parent for the invite code.
         </p>
