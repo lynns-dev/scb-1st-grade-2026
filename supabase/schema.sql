@@ -58,6 +58,17 @@ end $$;
 
 alter table profiles alter column family_id set not null;
 
+-- Admin-curated links (school portal, class supply list, etc.), shown on
+-- the Directory tab. Only ever written server-side via the service role
+-- (see app/api/links) — parents can only read them.
+create table if not exists links (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  url text not null,
+  created_by uuid references profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -179,6 +190,7 @@ create index if not exists reminders_week_of_idx on reminders (week_of);
 create index if not exists reminders_publish_at_idx on reminders (publish_at);
 create index if not exists messages_room_created_at_idx on messages (room_id, created_at);
 create index if not exists chat_room_members_user_idx on chat_room_members (user_id);
+create index if not exists links_created_at_idx on links (created_at);
 
 -- Row Level Security -----------------------------------------------------
 -- Every table is readable by any signed-in classroom member (chat rooms and
@@ -190,6 +202,7 @@ create index if not exists chat_room_members_user_idx on chat_room_members (user
 -- birthday invites).
 
 alter table profiles enable row level security;
+alter table links enable row level security;
 alter table events enable row level security;
 alter table reminders enable row level security;
 alter table messages enable row level security;
@@ -212,6 +225,10 @@ create policy "profiles readable by classroom members" on profiles
 -- classroom group; flagged here for anyone hardening this further.
 drop policy if exists "families readable by classroom members" on families;
 create policy "families readable by classroom members" on families
+  for select to authenticated using (true);
+
+drop policy if exists "links readable by classroom members" on links;
+create policy "links readable by classroom members" on links
   for select to authenticated using (true);
 
 drop policy if exists "events readable by classroom members" on events;

@@ -327,6 +327,163 @@ function ReminderRow({ reminder, index, onChanged }) {
   );
 }
 
+function LinkForm({ onCreated }) {
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    const res = await fetch("/api/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, url }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    setSaving(false);
+    if (!res.ok) {
+      setError(data.error || "Couldn't add that link.");
+      return;
+    }
+    setTitle("");
+    setUrl("");
+    onCreated();
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mb-3 space-y-2 rounded-2xl bg-white p-4 shadow-card">
+      <input
+        required
+        placeholder="Link title (e.g. School supply list)"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      />
+      <input
+        required
+        placeholder="URL (e.g. https://...)"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+      />
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+      >
+        {saving ? "Adding…" : "Add link"}
+      </button>
+    </form>
+  );
+}
+
+function LinkRow({ link, index, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(link.title);
+  const [url, setUrl] = useState(link.url);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function startEdit() {
+    setTitle(link.title);
+    setUrl(link.url);
+    setError("");
+    setEditing(true);
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    const res = await fetch(`/api/links/${link.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, url }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    setSaving(false);
+    if (!res.ok) {
+      setError(data.error || "Couldn't save changes.");
+      return;
+    }
+    setEditing(false);
+    onChanged();
+  }
+
+  async function handleDelete() {
+    await fetch(`/api/links/${link.id}`, { method: "DELETE" });
+    onChanged();
+  }
+
+  if (editing) {
+    return (
+      <li className="rounded-2xl bg-white p-3 shadow-card">
+        <form onSubmit={handleSave} className="space-y-2">
+          <input
+            required
+            placeholder="Link title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <input
+            required
+            placeholder="URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className="animate-fade-in-item flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+      style={staggerStyle(index)}
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-900">{link.title}</p>
+        <p className="truncate text-xs text-slate-400">{link.url}</p>
+      </div>
+      <div className="flex flex-none gap-3">
+        <button onClick={startEdit} className="text-xs font-medium text-brand-600">
+          Edit
+        </button>
+        <button onClick={handleDelete} className="text-xs font-medium text-red-500">
+          Delete
+        </button>
+      </div>
+    </li>
+  );
+}
+
 function toLocalDateTimeInput(iso) {
   const d = new Date(iso);
   const pad = (n) => String(n).padStart(2, "0");
@@ -538,10 +695,11 @@ export default function AdminPage() {
   const { profile, loading: profileLoading } = useProfile();
   const [reminders, setReminders] = useState([]);
   const [events, setEvents] = useState([]);
+  const [links, setLinks] = useState([]);
 
   async function refresh() {
     const supabase = createClient();
-    const [{ data: r }, { data: e }] = await Promise.all([
+    const [{ data: r }, { data: e }, { data: l }] = await Promise.all([
       supabase
         .from("reminders")
         .select("id, title, body, publish_at, created_at")
@@ -551,9 +709,11 @@ export default function AdminPage() {
         .select("id, title, description, location, start_at, all_day")
         .gte("start_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
         .order("start_at", { ascending: true }),
+      supabase.from("links").select("id, title, url").order("created_at", { ascending: true }),
     ]);
     setReminders(r || []);
     setEvents(e || []);
+    setLinks(l || []);
   }
 
   useEffect(() => {
@@ -598,6 +758,15 @@ export default function AdminPage() {
         <ul className="space-y-2">
           {events.map((e, i) => (
             <EventRow key={e.id} event={e} index={i} onChanged={refresh} />
+          ))}
+        </ul>
+      </Section>
+
+      <Section title="Manage links">
+        <LinkForm onCreated={refresh} />
+        <ul className="space-y-2">
+          {links.map((l, i) => (
+            <LinkRow key={l.id} link={l} index={i} onChanged={refresh} />
           ))}
         </ul>
       </Section>

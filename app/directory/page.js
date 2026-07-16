@@ -216,18 +216,50 @@ function InviteCoParent() {
   );
 }
 
+function LinksSection({ links }) {
+  if (!links.length) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        Links
+      </h2>
+      <ul className="space-y-2">
+        {links.map((l, i) => (
+          <li key={l.id} className="animate-fade-in-item" style={staggerStyle(i)}>
+            <a
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+            >
+              <span className="truncate text-sm font-medium text-slate-800">{l.title}</span>
+              <span className="flex-none text-brand-600">↗</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function DirectoryPage() {
   const { profile } = useProfile();
   const [families, setFamilies] = useState([]);
+  const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("families")
-      .select("id, child_name, child_avatar_url, profiles ( id, full_name, email, phone, avatar_url )")
-      .order("child_name", { ascending: true });
-    setFamilies(data || []);
+    const [{ data: familyData }, { data: linkData }] = await Promise.all([
+      supabase
+        .from("families")
+        .select("id, child_name, child_avatar_url, profiles ( id, full_name, email, phone, avatar_url )")
+        .order("child_name", { ascending: true }),
+      supabase.from("links").select("id, title, url").order("created_at", { ascending: true }),
+    ]);
+    setFamilies(familyData || []);
+    setLinks(linkData || []);
     setLoading(false);
   }
 
@@ -253,6 +285,8 @@ export default function DirectoryPage() {
       )}
 
       <InviteCoParent />
+
+      <LinksSection links={links} />
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
         Classroom families
