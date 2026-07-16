@@ -220,7 +220,7 @@ function LinksSection({ links }) {
   if (!links.length) return null;
 
   return (
-    <div className="mb-6">
+    <div id="links" className="mb-6 scroll-mt-24">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
         Links
       </h2>

@@ -32,6 +32,43 @@ function formatDateBadge(iso) {
   };
 }
 
+const QUICK_LINKS = [
+  {
+    href: "/calendar",
+    label: "Calendar",
+    tint: "brand",
+    icon: (
+      <>
+        <rect x="3.5" y="5" width="17" height="15" rx="2" />
+        <path d="M8 3v4M16 3v4M3.5 10h17" />
+      </>
+    ),
+  },
+  {
+    href: "/chat",
+    label: "Chat",
+    tint: "accent",
+    icon: <path d="M4 4h16v12H8l-4 4V4Z" />,
+  },
+  {
+    href: "/directory",
+    label: "Directory",
+    tint: "brand",
+    icon: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6M16 4.5c1.7.4 3 2 3 3.9s-1.3 3.5-3 3.9M20.5 20c0-2.8-1.8-5.1-4.2-5.8" />
+      </>
+    ),
+  },
+  {
+    href: "/directory#links",
+    label: "Links",
+    tint: "accent",
+    icon: <path d="M4 7h16M4 12h16M4 17h10" />,
+  },
+];
+
 export default function HomePage() {
   const { profile } = useProfile();
   const [reminders, setReminders] = useState([]);
@@ -84,15 +121,17 @@ export default function HomePage() {
           <p className="text-sm text-slate-500">{getGreeting()}</p>
           <p className="truncate text-3xl font-bold text-slate-900">{firstName || "there"}</p>
         </div>
-        <Logo size={56} className="flex-none rounded-2xl shadow-card" />
+        {profile?.child_name ? (
+          <Avatar
+            src={profile.child_avatar_url}
+            name={profile.child_name}
+            size={56}
+            className="flex-none rounded-2xl shadow-card"
+          />
+        ) : (
+          <Logo size={56} className="flex-none rounded-2xl shadow-card" />
+        )}
       </div>
-
-      {profile?.child_name && (
-        <div className="mb-6 flex flex-col items-center text-center">
-          <Avatar src={profile.child_avatar_url} name={profile.child_name} size={96} />
-          <p className="mt-3 text-xl font-bold text-slate-900">{profile.child_name}</p>
-        </div>
-      )}
 
       <section className="mb-6">
         {loading ? (
@@ -194,6 +233,37 @@ export default function HomePage() {
             })}
           </ul>
         )}
+      </section>
+
+      <section className="mt-6 grid grid-cols-2 gap-3">
+        {QUICK_LINKS.map((q, i) => (
+          <Link
+            key={q.href}
+            href={q.href}
+            className="animate-fade-in-item flex flex-col rounded-2xl bg-white p-4 shadow-card"
+            style={staggerStyle(i)}
+          >
+            <span
+              className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${
+                q.tint === "brand" ? "bg-brand-100 text-brand-600" : "bg-accent-100 text-accent-700"
+              }`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {q.icon}
+              </svg>
+            </span>
+            <p className="font-semibold text-slate-900">{q.label}</p>
+          </Link>
+        ))}
       </section>
     </AppShell>
   );

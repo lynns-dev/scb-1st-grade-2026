@@ -57,22 +57,26 @@ button {
   will-change: opacity;
 }
 
-/* Individual list rows: a gentle opacity + lift, longer and softer than
-   before, on a smooth "standard" easing curve rather than a sharp
-   deceleration — reads as a settle rather than a snap. */
+/* Individual cards/rows: opacity + a light lift + a gentle scale-up "pop".
+   The scale is intentionally subtle (96% → 100%) — the page wrapper above
+   never animates transform, so this is the only transform running at any
+   moment (no parent-transform coordinate space for it to compound against),
+   which is what keeps a genuine pop from reading as "jumpy". The curve is a
+   smooth deceleration with no overshoot, so it pops in and settles rather
+   than bouncing. */
 @keyframes fadeInItem {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(6px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 .animate-fade-in-item {
-  animation: fadeInItem 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) backwards;
+  animation: fadeInItem 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   will-change: opacity, transform;
 }
 

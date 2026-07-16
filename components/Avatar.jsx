@@ -10,7 +10,7 @@ function initials(name) {
     .join("");
 }
 
-export default function Avatar({ src, name, size = 40 }) {
+export default function Avatar({ src, name, size = 40, className = "rounded-full" }) {
   const style = { width: size, height: size, fontSize: size * 0.4 };
 
   if (src) {
@@ -20,7 +20,7 @@ export default function Avatar({ src, name, size = 40 }) {
         src={src}
         alt={name || "Avatar"}
         style={style}
-        className="flex-none rounded-full object-cover"
+        className={`flex-none object-cover ${className}`}
       />
     );
   }
@@ -28,7 +28,7 @@ export default function Avatar({ src, name, size = 40 }) {
   return (
     <div
       style={style}
-      className="flex flex-none items-center justify-center rounded-full bg-brand-100 font-semibold text-brand-600"
+      className={`flex flex-none items-center justify-center bg-brand-100 font-semibold text-brand-600 ${className}`}
     >
       {initials(name)}
     </div>
