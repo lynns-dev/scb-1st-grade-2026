@@ -74,38 +74,56 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
     items.push({ href: "/admin", label: "Admin", icon: "admin" });
   }
 
+  const activeIndex = items.findIndex((item) => pathname?.startsWith(item.href));
+  const activeColor = activeIndex >= 0 ? COLORS[items[activeIndex].icon] : null;
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
-      <div className={`mx-auto grid max-w-lg ${GRID_COLS[items.length] || "grid-cols-4"}`}>
-        {items.map((item) => {
-          const active = pathname?.startsWith(item.href);
-          const color = COLORS[item.icon];
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-200 ${color.fg}`}
-            >
-              <span className="relative flex h-8 w-8 items-center justify-center">
-                <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 ${
-                    active ? color.bg : ""
-                  }`}
-                >
+      <div className="relative mx-auto max-w-lg">
+        {/* Shared highlight pill — slides left/right to sit under whichever
+            tab is active, instead of each tab drawing its own static
+            background. transform is relative to the pill's own width (set
+            to one grid column via inline style), so translateX(N * 100%)
+            always lands it exactly on column N regardless of item count. */}
+        <div
+          className="pointer-events-none absolute left-0 top-2.5 flex justify-center transition-transform duration-300 ease-out"
+          style={{
+            width: `${100 / items.length}%`,
+            transform: `translateX(${Math.max(activeIndex, 0) * 100}%)`,
+            opacity: activeIndex >= 0 ? 1 : 0,
+          }}
+          aria-hidden="true"
+        >
+          <span
+            className={`h-8 w-8 rounded-full transition-colors duration-300 ${activeColor?.bg || ""}`}
+          />
+        </div>
+
+        <div className={`grid ${GRID_COLS[items.length] || "grid-cols-4"}`}>
+          {items.map((item) => {
+            const active = pathname?.startsWith(item.href);
+            const color = COLORS[item.icon];
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-200 ${color.fg}`}
+              >
+                <span className="relative flex h-8 w-8 items-center justify-center">
                   <Icon name={item.icon} />
+                  {item.icon === "chat" && unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </span>
-                {item.icon === "chat" && unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </span>
-              <span className={active ? "font-semibold" : "font-medium text-slate-500"}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+                <span className={active ? "font-semibold" : "font-medium text-slate-500"}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

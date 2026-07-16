@@ -114,9 +114,18 @@ export default function HomePage() {
 
   const firstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
 
+  // One running index across every animated element on the page, so the
+  // entrance cascade reads as a single top-to-bottom sequence instead of
+  // each section restarting its own stagger from zero.
+  let cardIndex = 0;
+  const headerIndex = cardIndex++;
+
   return (
     <AppShell title="Home">
-      <div className="mb-6 flex items-start justify-between gap-3">
+      <div
+        className="animate-fade-in-item mb-6 flex items-start justify-between gap-3"
+        style={staggerStyle(headerIndex)}
+      >
         <div className="min-w-0">
           <p className="text-sm text-slate-500">{getGreeting()}</p>
           <p className="truncate text-3xl font-bold text-slate-900">{firstName || "there"}</p>
@@ -142,11 +151,11 @@ export default function HomePage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {reminders.map((r, i) => (
+            {reminders.map((r) => (
               <li
                 key={r.id}
                 className="animate-fade-in-item rounded-2xl bg-brand-500 p-4 text-white shadow-card"
-                style={staggerStyle(i)}
+                style={staggerStyle(cardIndex++)}
               >
                 <p className="text-[11px] font-bold uppercase tracking-wide text-brand-100">
                   This week
@@ -189,13 +198,13 @@ export default function HomePage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {events.map((e, i) => {
+            {events.map((e) => {
               const badge = formatDateBadge(e.start_at);
               return (
                 <li
                   key={e.id}
                   className="animate-fade-in-item flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card"
-                  style={staggerStyle(i)}
+                  style={staggerStyle(cardIndex++)}
                 >
                   <div className="flex h-14 w-14 flex-none flex-col items-center justify-center rounded-xl bg-accent-100 text-accent-800">
                     <span className="text-[10px] font-bold uppercase tracking-wide">
@@ -236,12 +245,12 @@ export default function HomePage() {
       </section>
 
       <section className="mt-6 grid grid-cols-2 gap-3">
-        {QUICK_LINKS.map((q, i) => (
+        {QUICK_LINKS.map((q) => (
           <Link
             key={q.href}
             href={q.href}
             className="animate-fade-in-item flex flex-col rounded-2xl bg-white p-4 shadow-card"
-            style={staggerStyle(i)}
+            style={staggerStyle(cardIndex++)}
           >
             <span
               className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${

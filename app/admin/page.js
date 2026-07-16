@@ -822,6 +822,11 @@ export default function AdminPage() {
     return null;
   }
 
+  // One running index across every section's rows, so the entrance cascade
+  // reads as a single top-to-bottom sequence instead of each list
+  // restarting its own stagger from zero.
+  let rowIndex = 0;
+
   return (
     <AppShell title="Admin">
       <Section title="Ask the assistant">
@@ -831,8 +836,14 @@ export default function AdminPage() {
       <Section title="Post a reminder">
         <ReminderForm onCreated={refresh} userId={profile.id} />
         <ul className="space-y-2">
-          {reminders.map((r, i) => (
-            <ReminderRow key={r.id} reminder={r} index={i} onChanged={refresh} userId={profile.id} />
+          {reminders.map((r) => (
+            <ReminderRow
+              key={r.id}
+              reminder={r}
+              index={rowIndex++}
+              onChanged={refresh}
+              userId={profile.id}
+            />
           ))}
         </ul>
       </Section>
@@ -840,8 +851,8 @@ export default function AdminPage() {
       <Section title="Add a calendar event">
         <EventForm onCreated={refresh} />
         <ul className="space-y-2">
-          {events.map((e, i) => (
-            <EventRow key={e.id} event={e} index={i} onChanged={refresh} />
+          {events.map((e) => (
+            <EventRow key={e.id} event={e} index={rowIndex++} onChanged={refresh} />
           ))}
         </ul>
       </Section>
@@ -849,8 +860,8 @@ export default function AdminPage() {
       <Section title="Manage links">
         <LinkForm onCreated={refresh} />
         <ul className="space-y-2">
-          {links.map((l, i) => (
-            <LinkRow key={l.id} link={l} index={i} onChanged={refresh} />
+          {links.map((l) => (
+            <LinkRow key={l.id} link={l} index={rowIndex++} onChanged={refresh} />
           ))}
         </ul>
       </Section>

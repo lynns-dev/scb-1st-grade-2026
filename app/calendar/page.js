@@ -273,35 +273,38 @@ function WeekView({ events, profile, onDelete }) {
         </button>
       </div>
 
-      {days.map((day) => {
-        const dayEvents = events.filter((e) => isSameDay(new Date(e.start_at), day));
-        const isToday = isSameDay(day, today);
+      {(() => {
+        let globalIndex = 0;
+        return days.map((day) => {
+          const dayEvents = events.filter((e) => isSameDay(new Date(e.start_at), day));
+          const isToday = isSameDay(day, today);
 
-        return (
-          <div key={day.toISOString()} className={`mb-3 rounded-2xl p-3 ${isToday ? "bg-brand-50" : ""}`}>
-            <p className={`mb-2 text-sm font-bold ${isToday ? "text-brand-700" : "text-slate-900"}`}>
-              {day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-              {isToday && <span className="ml-1.5 text-[10px] font-semibold uppercase text-brand-500">Today</span>}
-            </p>
-            {dayEvents.length === 0 ? (
-              <p className="text-xs text-slate-400">No events</p>
-            ) : (
-              <ul className="space-y-2">
-                {dayEvents.map((e, i) => (
-                  <EventCard
-                    key={e.id}
-                    event={e}
-                    profile={profile}
-                    onDelete={onDelete}
-                    showDateBadge={false}
-                    index={i}
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
-        );
-      })}
+          return (
+            <div key={day.toISOString()} className={`mb-3 rounded-2xl p-3 ${isToday ? "bg-brand-50" : ""}`}>
+              <p className={`mb-2 text-sm font-bold ${isToday ? "text-brand-700" : "text-slate-900"}`}>
+                {day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                {isToday && <span className="ml-1.5 text-[10px] font-semibold uppercase text-brand-500">Today</span>}
+              </p>
+              {dayEvents.length === 0 ? (
+                <p className="text-xs text-slate-400">No events</p>
+              ) : (
+                <ul className="space-y-2">
+                  {dayEvents.map((e) => (
+                    <EventCard
+                      key={e.id}
+                      event={e}
+                      profile={profile}
+                      onDelete={onDelete}
+                      showDateBadge={false}
+                      index={globalIndex++}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        });
+      })()}
     </div>
   );
 }
@@ -317,12 +320,13 @@ function MonthView({ events, profile, onDelete }) {
     );
   }
 
+  let globalIndex = 0;
   return Array.from(groups.entries()).map(([month, monthEvents]) => (
     <section key={month} className="mb-6">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">{month}</h2>
       <ul className="space-y-3">
-        {monthEvents.map((e, i) => (
-          <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} index={i} />
+        {monthEvents.map((e) => (
+          <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} index={globalIndex++} />
         ))}
       </ul>
     </section>
