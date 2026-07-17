@@ -69,6 +69,24 @@ create table if not exists links (
   created_at timestamptz not null default now()
 );
 
+-- Single-row settings table (the `id boolean primary key default true` +
+-- check constraint trick guarantees at most one row can ever exist — a
+-- second insert collides on the primary key). Holds small classroom-wide
+-- values that don't warrant their own table, starting with the teacher's
+-- Amazon wishlist link shown as a Home quick-link. Only ever written
+-- server-side via the service role (see app/api/admin/settings); parents
+-- can only read it.
+create table if not exists classroom_settings (
+  id boolean primary key default true,
+  wishlist_url text,
+  updated_at timestamptz not null default now(),
+  constraint classroom_settings_singleton check (id)
+);
+
+insert into classroom_settings (id) values (true) on conflict (id) do nothing;
+
+alter table classroom_settings enable row level security;
+
 -- Gifts & donations (Stripe Connect) ----------------------------------------
 -- Real money moves here, routed entirely through Stripe Connect so this app
 -- never takes custody of funds — Stripe is the licensed money transmitter;
@@ -310,6 +328,10 @@ create policy "families readable by classroom members" on families
 
 drop policy if exists "links readable by classroom members" on links;
 create policy "links readable by classroom members" on links
+  for select to authenticated using (true);
+
+drop policy if exists "settings readable by classroom members" on classroom_settings;
+create policy "settings readable by classroom members" on classroom_settings
   for select to authenticated using (true);
 
 -- payout_accounts deliberately has no select policy at all — not even a

@@ -10,6 +10,7 @@ import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
 import GiftsAdminSection from "@/components/GiftsAdminSection";
 import InviteFamiliesSection from "@/components/InviteFamiliesSection";
+import WishlistSettingsForm from "@/components/WishlistSettingsForm";
 import AccordionSection from "@/components/AccordionSection";
 
 function AttachmentPicker({ userId, attachmentUrl, attachmentName, onChange }) {
@@ -791,6 +792,16 @@ export default function AdminPage() {
         onToggle={setActiveSection}
       >
         <InviteFamiliesSection />
+      </AccordionSection>
+
+      <AccordionSection
+        id="wishlist"
+        title="Wishlist link"
+        icon="🛍️"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        <WishlistSettingsForm />
       </AccordionSection>
     </AppShell>
   );

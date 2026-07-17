@@ -32,6 +32,10 @@ store needed) for our classroom family. Built with Next.js 14 and Supabase.
   teacher appreciation week), parents chip in with a simple amount + note,
   and funds route directly to whoever's collecting via Stripe Connect — this
   app never holds the money itself
+- **Wishlist** — the admin can set an Amazon (or any) wishlist link, shown as
+  a quick-link card on Home; it's a plain outbound link (Amazon blocks
+  embedding its pages), so this is just a shortcut, not an in-app shopping
+  experience
 
 ## How membership works
 
@@ -165,7 +169,7 @@ Visit `/signup` and create the first account using your admin invite code.
 - `app/directory` — every parent's contact info + self-service photo/phone/
   child name editing (`app/api/profile`) and the notifications toggle
 - `app/admin` — room-parent-only: reminder/event/link forms, gift payout
-  setup, and inviting new families by email
+  setup, inviting new families by email, and the wishlist link
 - `app/api/auth/signup` — validates invite code, creates the account
 - `app/api/reminders`, `app/api/events` — admin-only create/edit/delete
   (parents can also post/delete their own birthday/playdate/fun-event
@@ -173,6 +177,9 @@ Visit `/signup` and create the first account using your admin invite code.
 - `app/api/admin/invite-families` — creates a family record per invited
   group and emails each address a signup link (via Resend) prefilled with
   the classroom and family invite codes
+- `app/api/admin/settings` — admin-only, sets the classroom-wide wishlist
+  URL shown as a Home quick-link (`classroom_settings` is a single-row
+  table; parents can read it directly, only the service role writes it)
 - `app/api/messages` — posts a chat message server-side (rather than a
   direct client insert) so it has a hook to fan out push notifications
 - `app/api/push/subscribe` — saves/removes a device's push subscription

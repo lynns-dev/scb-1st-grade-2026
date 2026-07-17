@@ -90,6 +90,7 @@ export default function HomePage() {
   const [reminders, setReminders] = useState([]);
   const [events, setEvents] = useState([]);
   const [openGifts, setOpenGifts] = useState([]);
+  const [wishlistUrl, setWishlistUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function HomePage() {
     async function load() {
       const weekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
 
-      const [{ data: remindersData }, { data: eventsData }, { data: giftsData }] =
+      const [{ data: remindersData }, { data: eventsData }, { data: giftsData }, { data: settingsData }] =
         await Promise.all([
           supabase
             .from("reminders")
@@ -120,6 +121,7 @@ export default function HomePage() {
             .select("id, title, target_cents, gift_contributions ( amount_cents, status )")
             .is("closed_at", null)
             .order("created_at", { ascending: false }),
+          supabase.from("classroom_settings").select("wishlist_url").eq("id", true).single(),
         ]);
 
       if (active) {
@@ -135,6 +137,7 @@ export default function HomePage() {
               .reduce((sum, c) => sum + c.amount_cents, 0),
           }))
         );
+        setWishlistUrl(settingsData?.wishlist_url || "");
         setLoading(false);
       }
     }
@@ -146,6 +149,24 @@ export default function HomePage() {
   }, []);
 
   const firstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
+
+  const quickLinks = wishlistUrl
+    ? [
+        ...QUICK_LINKS,
+        {
+          href: wishlistUrl,
+          label: "Wishlist",
+          tint: "accent",
+          external: true,
+          icon: (
+            <>
+              <path d="M6 8h12l-1 12H7L6 8Z" />
+              <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+            </>
+          ),
+        },
+      ]
+    : QUICK_LINKS;
 
   // One running index across every animated element on the page, so the
   // entrance cascade reads as a single top-to-bottom sequence instead of
@@ -302,34 +323,54 @@ export default function HomePage() {
       </section>
 
       <section className="mt-6 grid grid-cols-2 gap-3">
-        {QUICK_LINKS.map((q) => (
-          <Link
-            key={q.href}
-            href={q.href}
-            className="animate-fade-in-item flex flex-col rounded-2xl bg-white p-4 shadow-card"
-            style={staggerStyle(cardIndex++)}
-          >
-            <span
-              className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${
-                q.tint === "brand" ? "bg-brand-100 text-brand-600" : "bg-accent-100 text-accent-700"
-              }`}
+        {quickLinks.map((q) => {
+          const cardClass =
+            "animate-fade-in-item flex flex-col rounded-2xl bg-white p-4 shadow-card";
+          const iconClass = `mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${
+            q.tint === "brand" ? "bg-brand-100 text-brand-600" : "bg-accent-100 text-accent-700"
+          }`;
+          const inner = (
+            <>
+              <span className={iconClass}>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {q.icon}
+                </svg>
+              </span>
+              <p className="font-semibold text-slate-900">{q.label}</p>
+            </>
+          );
+
+          return q.external ? (
+            <a
+              key={q.href}
+              href={q.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cardClass}
+              style={staggerStyle(cardIndex++)}
             >
-              <svg
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {q.icon}
-              </svg>
-            </span>
-            <p className="font-semibold text-slate-900">{q.label}</p>
-          </Link>
-        ))}
+              {inner}
+            </a>
+          ) : (
+            <Link
+              key={q.href}
+              href={q.href}
+              className={cardClass}
+              style={staggerStyle(cardIndex++)}
+            >
+              {inner}
+            </Link>
+          );
+        })}
       </section>
     </AppShell>
   );
