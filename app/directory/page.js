@@ -7,6 +7,7 @@ import { uploadAvatar, uploadChildPhoto } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
 import NotificationsToggle from "@/components/NotificationsToggle";
+import AccordionSection from "@/components/AccordionSection";
 import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
 
@@ -216,30 +217,23 @@ function InviteCoParent() {
   );
 }
 
-function LinksSection({ links }) {
-  if (!links.length) return null;
-
+function LinksList({ links }) {
   return (
-    <div id="links" className="mb-6 scroll-mt-24">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-        Links
-      </h2>
-      <ul className="space-y-2">
-        {links.map((l, i) => (
-          <li key={l.id} className="animate-fade-in-item" style={staggerStyle(i)}>
-            <a
-              href={l.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
-            >
-              <span className="truncate text-sm font-medium text-slate-800">{l.title}</span>
-              <span className="flex-none text-brand-600">↗</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-2">
+      {links.map((l, i) => (
+        <li key={l.id} className="animate-fade-in-item" style={staggerStyle(i)}>
+          <a
+            href={l.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card"
+          >
+            <span className="truncate text-sm font-medium text-slate-800">{l.title}</span>
+            <span className="flex-none text-brand-600">↗</span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -248,6 +242,7 @@ export default function DirectoryPage() {
   const [families, setFamilies] = useState([]);
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState("families");
 
   async function refresh() {
     const supabase = createClient();
@@ -273,56 +268,88 @@ export default function DirectoryPage() {
         Contact info for reaching out about birthday parties, playdates, and everything else.
       </p>
 
-      <NotificationsToggle />
+      <AccordionSection
+        id="families"
+        title="Classroom families"
+        icon="👨‍👩‍👧"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        {loading ? (
+          <SkeletonCards count={3} height="h-20" />
+        ) : (
+          <ul className="space-y-3">
+            {families.map((f, i) => (
+              <li
+                key={f.id}
+                className="animate-fade-in-item rounded-2xl bg-white p-3 shadow-card"
+                style={staggerStyle(i)}
+              >
+                <div className="mb-2 flex items-center gap-3">
+                  <Avatar src={f.child_avatar_url} name={f.child_name} size={40} />
+                  <p className="truncate font-semibold text-slate-900">
+                    {f.child_name || "Family"}
+                  </p>
+                </div>
+                <ul className="space-y-2 border-t border-slate-100 pt-2">
+                  {(f.profiles || []).map((p) => (
+                    <li key={p.id} className="flex items-center gap-3">
+                      <Avatar src={p.avatar_url} name={p.full_name} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-800">{p.full_name}</p>
+                        <p className="truncate text-xs text-slate-500">{p.email}</p>
+                        {p.phone && <p className="truncate text-xs text-slate-500">{p.phone}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AccordionSection>
 
-      {profile && (
-        <EditMyInfo
-          profile={profile}
-          onSaved={() => {
-            refresh();
-          }}
-        />
+      {links.length > 0 && (
+        <AccordionSection
+          id="links"
+          title="Links"
+          icon="🔗"
+          activeId={activeSection}
+          onToggle={setActiveSection}
+        >
+          <LinksList links={links} />
+        </AccordionSection>
       )}
 
-      <InviteCoParent />
+      <AccordionSection
+        id="my-info"
+        title="My info"
+        icon="👤"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        {profile && <EditMyInfo profile={profile} onSaved={() => refresh()} />}
+      </AccordionSection>
 
-      <LinksSection links={links} />
+      <AccordionSection
+        id="notifications"
+        title="Notifications"
+        icon="🔔"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        <NotificationsToggle />
+      </AccordionSection>
 
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-        Classroom families
-      </h2>
-      {loading ? (
-        <SkeletonCards count={3} height="h-20" />
-      ) : (
-        <ul className="space-y-3">
-          {families.map((f, i) => (
-            <li
-              key={f.id}
-              className="animate-fade-in-item rounded-2xl bg-white p-3 shadow-card"
-              style={staggerStyle(i)}
-            >
-              <div className="mb-2 flex items-center gap-3">
-                <Avatar src={f.child_avatar_url} name={f.child_name} size={40} />
-                <p className="truncate font-semibold text-slate-900">
-                  {f.child_name || "Family"}
-                </p>
-              </div>
-              <ul className="space-y-2 border-t border-slate-100 pt-2">
-                {(f.profiles || []).map((p) => (
-                  <li key={p.id} className="flex items-center gap-3">
-                    <Avatar src={p.avatar_url} name={p.full_name} size={32} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-800">{p.full_name}</p>
-                      <p className="truncate text-xs text-slate-500">{p.email}</p>
-                      {p.phone && <p className="truncate text-xs text-slate-500">{p.phone}</p>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      )}
+      <AccordionSection
+        id="invite-coparent"
+        title="Invite co-parent"
+        icon="👪"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        <InviteCoParent />
+      </AccordionSection>
     </AppShell>
   );
 }
