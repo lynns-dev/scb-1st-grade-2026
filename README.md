@@ -30,6 +30,10 @@ and Claude.
   events by hand, *or* just type what she wants in plain English to an
   embedded Claude assistant ("remind everyone about picture day Friday")
   and it makes the update for her
+- **Gifts & donations** — the admin starts a collection (a holiday gift,
+  teacher appreciation week), parents chip in with a simple amount + note,
+  and funds route directly to whoever's collecting via Stripe Connect — this
+  app never holds the money itself
 
 ## How membership works
 
@@ -88,7 +92,41 @@ Note: on iPhone, push notifications only work once the app has been added
 to the Home Screen (regular Safari tabs can't receive them) and requires
 iOS 16.4+.
 
-### 5. Local development
+### 5. Stripe (gifts & donations)
+
+This app is a payments *facilitator*, not a money transmitter — it never
+holds funds. Every gift routes through Stripe Connect straight to whoever's
+collecting (Stripe Express account), and this app just adds a small
+platform fee on top via Stripe's own `application_fee_amount` mechanism.
+
+1. Create a Stripe account at [stripe.com](https://stripe.com) if you don't
+   have one.
+2. **Dashboard → Developers → API keys.** Copy the **Secret key** (start
+   with the test-mode one, `sk_test_...`, until you're ready for real
+   money) into `STRIPE_SECRET_KEY`.
+3. **Dashboard → Connect → Get started.** Choose **Express** as the account
+   type when prompted — that's what this app creates for whoever collects
+   gifts. You don't need to finish every setting here; the defaults work.
+4. **Dashboard → Developers → Webhooks → Add endpoint.** Point it at
+   `https://your-app.vercel.app/api/webhooks/stripe` and select these
+   events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed`. Copy the **Signing secret**
+   (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
+5. From the Admin tab in the app, whoever should receive gifts (you, the
+   teacher, this year's room parent) taps **Connect payout account** and
+   completes Stripe's own onboarding form (a few minutes — name, bank
+   account, basic identity info). Nothing else in the app needs touching;
+   an admin can reconnect a different bank account anytime the recipient
+   changes.
+
+If `STRIPE_SECRET_KEY` is left unset, the Gifts tab and admin section just
+show a "not set up yet" state — nothing else in the app is affected.
+
+Note: bank-transfer (ACH) gifts take a few business days to actually clear,
+even though the parent's part is done in a few taps — the running total
+only counts a gift once Stripe confirms it, not the moment someone submits.
+
+### 6. Local development
 
 ```bash
 npm install

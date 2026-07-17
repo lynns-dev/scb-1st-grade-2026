@@ -67,12 +67,28 @@ const QUICK_LINKS = [
     tint: "accent",
     icon: <path d="M4 7h16M4 12h16M4 17h10" />,
   },
+  {
+    href: "/gifts",
+    label: "Gifts",
+    tint: "brand",
+    icon: (
+      <>
+        <rect x="4" y="9" width="16" height="11" rx="1" />
+        <path d="M4 9h16M12 9v11M8 9c-1.5 0-3-1-3-2.5S6.5 4 8 4c2 0 4 3 4 5M16 9c1.5 0 3-1 3-2.5S17.5 4 16 4c-2 0-4 3-4 5" />
+      </>
+    ),
+  },
 ];
+
+function currency(cents) {
+  return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
 
 export default function HomePage() {
   const { profile } = useProfile();
   const [reminders, setReminders] = useState([]);
   const [events, setEvents] = useState([]);
+  const [openGifts, setOpenGifts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -82,26 +98,42 @@ export default function HomePage() {
     async function load() {
       const weekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
 
-      const [{ data: remindersData }, { data: eventsData }] = await Promise.all([
-        supabase
-          .from("reminders")
-          .select(
-            "id, title, body, week_of, created_at, attachment_url, attachment_name, profiles ( full_name )"
-          )
-          .gte("week_of", weekStart)
-          .lte("publish_at", new Date().toISOString())
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("events")
-          .select("id, title, description, location, start_at, end_at, all_day, event_type")
-          .gte("start_at", new Date().toISOString())
-          .order("start_at", { ascending: true })
-          .limit(3),
-      ]);
+      const [{ data: remindersData }, { data: eventsData }, { data: giftsData }] =
+        await Promise.all([
+          supabase
+            .from("reminders")
+            .select(
+              "id, title, body, week_of, created_at, attachment_url, attachment_name, profiles ( full_name )"
+            )
+            .gte("week_of", weekStart)
+            .lte("publish_at", new Date().toISOString())
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("events")
+            .select("id, title, description, location, start_at, end_at, all_day, event_type")
+            .gte("start_at", new Date().toISOString())
+            .order("start_at", { ascending: true })
+            .limit(3),
+          supabase
+            .from("gift_collections")
+            .select("id, title, target_cents, gift_contributions ( amount_cents, status )")
+            .is("closed_at", null)
+            .order("created_at", { ascending: false }),
+        ]);
 
       if (active) {
         setReminders(remindersData || []);
         setEvents(eventsData || []);
+        setOpenGifts(
+          (giftsData || []).map((g) => ({
+            id: g.id,
+            title: g.title,
+            targetCents: g.target_cents,
+            raisedCents: (g.gift_contributions || [])
+              .filter((c) => c.status === "succeeded")
+              .reduce((sum, c) => sum + c.amount_cents, 0),
+          }))
+        );
         setLoading(false);
       }
     }
@@ -180,6 +212,30 @@ export default function HomePage() {
           </ul>
         )}
       </section>
+
+      {openGifts.length > 0 && (
+        <section className="mb-6">
+          <ul className="space-y-3">
+            {openGifts.map((g) => (
+              <li key={g.id} className="animate-fade-in-item" style={staggerStyle(cardIndex++)}>
+                <Link
+                  href={`/gifts/${g.id}`}
+                  className="block rounded-2xl bg-accent-500 p-4 text-white shadow-card"
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-accent-50">
+                    🎁 Gift collection open
+                  </p>
+                  <p className="mt-1 font-semibold text-white">{g.title}</p>
+                  <p className="mt-1 text-sm text-white/85">
+                    {currency(g.raisedCents)} raised
+                    {g.targetCents ? ` of ${currency(g.targetCents)} goal` : ""} — tap to give
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <div className="mb-2 flex items-center justify-between">

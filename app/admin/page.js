@@ -8,6 +8,7 @@ import { uploadReminderAttachment } from "@/lib/uploadFile";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
+import GiftsAdminSection from "@/components/GiftsAdminSection";
 
 function Section({ title, children }) {
   return (
@@ -864,6 +865,10 @@ export default function AdminPage() {
             <LinkRow key={l.id} link={l} index={rowIndex++} onChanged={refresh} />
           ))}
         </ul>
+      </Section>
+
+      <Section title="Gifts & donations">
+        <GiftsAdminSection />
       </Section>
     </AppShell>
   );

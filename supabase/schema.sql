@@ -69,6 +69,67 @@ create table if not exists links (
   created_at timestamptz not null default now()
 );
 
+-- Gifts & donations (Stripe Connect) ----------------------------------------
+-- Real money moves here, routed entirely through Stripe Connect so this app
+-- never takes custody of funds — Stripe is the licensed money transmitter;
+-- this table just tracks which Express account is the current payout
+-- destination. No client select policy at all (see below) — even the
+-- account id shouldn't be exposed to the browser; status is served through
+-- a dedicated API route (app/api/gifts/connect) instead. Only the service
+-- role ever writes here.
+create table if not exists payout_accounts (
+  id uuid primary key default gen_random_uuid(),
+  stripe_account_id text not null unique,
+  charges_enabled boolean not null default false,
+  payouts_enabled boolean not null default false,
+  connected_by uuid references profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table payout_accounts enable row level security;
+
+-- A named collection toward one gift/donation purpose (holiday gift,
+-- teacher appreciation week, a class fundraiser). Admin creates/closes
+-- these; any signed-in parent can see and contribute to an open one.
+create table if not exists gift_collections (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  note text,
+  target_cents integer,
+  payout_account_id uuid references payout_accounts (id) on delete set null,
+  created_by uuid references profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  closed_at timestamptz
+);
+
+alter table gift_collections enable row level security;
+
+-- One row per contribution. Amounts are stored in cents to avoid floating
+-- point drift. status starts 'pending' the moment a Checkout Session is
+-- created and only flips to 'succeeded' once the Stripe webhook confirms
+-- the charge actually went through — a successful redirect back to the app
+-- is never on its own treated as proof of payment. platform_fee_cents is
+-- kept for our own records but deliberately never rendered in the app UI
+-- (Stripe's own dashboard is where that revenue gets reviewed) — same
+-- reasoning as keeping business-margin info out of the classroom admin
+-- screen entirely.
+create table if not exists gift_contributions (
+  id uuid primary key default gen_random_uuid(),
+  collection_id uuid not null references gift_collections (id) on delete cascade,
+  contributor_id uuid references profiles (id) on delete set null,
+  amount_cents integer not null,
+  platform_fee_cents integer not null default 0,
+  note text,
+  stripe_checkout_session_id text unique,
+  stripe_payment_intent_id text,
+  status text not null default 'pending' check (status in ('pending', 'succeeded', 'failed')),
+  created_at timestamptz not null default now()
+);
+
+alter table gift_contributions enable row level security;
+
+create index if not exists gift_contributions_collection_idx on gift_contributions (collection_id);
+
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -233,6 +294,25 @@ create policy "families readable by classroom members" on families
 
 drop policy if exists "links readable by classroom members" on links;
 create policy "links readable by classroom members" on links
+  for select to authenticated using (true);
+
+-- payout_accounts deliberately has no select policy at all — not even a
+-- restricted one. Status is only ever served through the service-role-
+-- backed /api/gifts/connect/status route.
+
+drop policy if exists "gift collections readable by classroom members" on gift_collections;
+create policy "gift collections readable by classroom members" on gift_collections
+  for select to authenticated using (true);
+
+-- Contribution amounts/notes are visible to the whole classroom group by
+-- design (same trusted-small-group transparency as the rest of the app) —
+-- but the client only ever selects the public-safe columns (amount_cents,
+-- note, contributor, status, created_at); stripe_checkout_session_id,
+-- stripe_payment_intent_id, and platform_fee_cents are never requested by
+-- client-side queries even though this policy technically allows it (the
+-- same row-vs-column RLS limitation noted above for families.invite_code).
+drop policy if exists "gift contributions readable by classroom members" on gift_contributions;
+create policy "gift contributions readable by classroom members" on gift_contributions
   for select to authenticated using (true);
 
 drop policy if exists "events readable by classroom members" on events;
