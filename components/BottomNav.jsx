@@ -78,7 +78,7 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
   const activeColor = activeIndex >= 0 ? COLORS[items[activeIndex].icon] : null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
+    <nav className="flex-none border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
       <div className="relative mx-auto max-w-lg">
         {/* Shared highlight pill — slides left/right to sit under whichever
             tab is active, instead of each tab drawing its own static
