@@ -250,12 +250,28 @@ create table if not exists chat_read_state (
   primary key (user_id, room_id)
 );
 
+-- Emoji reactions (tapbacks) on chat messages. One row per person per emoji
+-- per message — tapping the same emoji again removes it (handled client-
+-- side as an insert-or-delete), tapping a different emoji adds another row,
+-- so one person can leave more than one reaction on the same message.
+create table if not exists message_reactions (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid not null references messages (id) on delete cascade,
+  user_id uuid not null references profiles (id) on delete cascade,
+  emoji text not null,
+  created_at timestamptz not null default now(),
+  unique (message_id, user_id, emoji)
+);
+
+alter table message_reactions enable row level security;
+
 create index if not exists events_start_at_idx on events (start_at);
 create index if not exists reminders_week_of_idx on reminders (week_of);
 create index if not exists reminders_publish_at_idx on reminders (publish_at);
 create index if not exists messages_room_created_at_idx on messages (room_id, created_at);
 create index if not exists chat_room_members_user_idx on chat_room_members (user_id);
 create index if not exists links_created_at_idx on links (created_at);
+create index if not exists message_reactions_message_idx on message_reactions (message_id);
 
 -- Row Level Security -----------------------------------------------------
 -- Every table is readable by any signed-in classroom member (chat rooms and
@@ -392,6 +408,46 @@ create policy "room members can post their own chat messages" on messages
     )
   );
 
+-- Reactions inherit the same room-membership boundary as the messages
+-- they're attached to — you can only see or leave reactions on a message
+-- in a room you're actually in.
+drop policy if exists "reactions readable by room members" on message_reactions;
+create policy "reactions readable by room members" on message_reactions
+  for select to authenticated using (
+    exists (
+      select 1 from messages msg
+      join chat_rooms r on r.id = msg.room_id
+      where msg.id = message_reactions.message_id
+        and (
+          r.is_default
+          or exists (
+            select 1 from chat_room_members m
+            where m.room_id = r.id and m.user_id = auth.uid()
+          )
+        )
+    )
+  );
+
+drop policy if exists "users manage their own reactions" on message_reactions;
+create policy "users manage their own reactions" on message_reactions
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (
+    user_id = auth.uid()
+    and exists (
+      select 1 from messages msg
+      join chat_rooms r on r.id = msg.room_id
+      where msg.id = message_reactions.message_id
+        and (
+          r.is_default
+          or exists (
+            select 1 from chat_room_members m
+            where m.room_id = r.id and m.user_id = auth.uid()
+          )
+        )
+    )
+  );
+
 -- Realtime -----------------------------------------------------------------
 -- Enable realtime updates for the chat room (safe to re-run).
 do $$
@@ -401,6 +457,12 @@ begin
     where pubname = 'supabase_realtime' and tablename = 'messages'
   ) then
     alter publication supabase_realtime add table messages;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'message_reactions'
+  ) then
+    alter publication supabase_realtime add table message_reactions;
   end if;
 end $$;
 

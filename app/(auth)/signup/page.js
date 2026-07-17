@@ -35,8 +35,17 @@ function SignupForm() {
   const childFileInputRef = useRef(null);
 
   useEffect(() => {
-    const code = searchParams.get("familyCode");
-    if (code) setForm((f) => ({ ...f, familyCode: code }));
+    const familyCode = searchParams.get("familyCode");
+    const inviteCode = searchParams.get("inviteCode");
+    const email = searchParams.get("email");
+    if (familyCode || inviteCode || email) {
+      setForm((f) => ({
+        ...f,
+        familyCode: familyCode || f.familyCode,
+        inviteCode: inviteCode || f.inviteCode,
+        email: email || f.email,
+      }));
+    }
   }, [searchParams]);
 
   function update(field) {

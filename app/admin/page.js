@@ -9,103 +9,32 @@ import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
 import GiftsAdminSection from "@/components/GiftsAdminSection";
+import InviteFamiliesSection from "@/components/InviteFamiliesSection";
 
-function Section({ title, children }) {
-  return (
-    <section className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function AssistantPanel({ onAction }) {
-  const [thread, setThread] = useState([
-    {
-      role: "assistant",
-      text: "Hi! Tell me what to add or change — e.g. \"remind everyone to bring $5 for the book fair Friday\" or \"add an event for the field trip on Oct 3rd, 9am–2pm.\"",
-    },
-  ]);
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
-  const historyRef = useRef([]);
-  const bottomRef = useRef(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread.length]);
-
-  async function handleSend(e) {
-    e.preventDefault();
-    const text = draft.trim();
-    if (!text || sending) return;
-
-    setError("");
-    setThread((t) => [...t, { role: "user", text }]);
-    setDraft("");
-    setSending(true);
-
-    try {
-      const res = await fetch("/api/admin/assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history: historyRef.current }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Something went wrong.");
-        return;
-      }
-
-      historyRef.current = data.history || historyRef.current;
-      setThread((t) => [...t, { role: "assistant", text: data.reply || "Done." }]);
-      if (data.actions?.length) onAction?.();
-    } catch {
-      setError("Couldn't reach the assistant. Try again.");
-    } finally {
-      setSending(false);
-    }
-  }
+// Single-column accordion: one full-width button per section, tap to open
+// its content in place — only one section's content shows at a time, so on
+// a small screen the admin isn't scrolling past four forms to find the one
+// she wants.
+function AdminSection({ id, title, icon, activeId, onToggle, children }) {
+  const isOpen = activeId === id;
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-card">
-      <div className="mb-3 max-h-72 space-y-3 overflow-y-auto">
-        {thread.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${
-                m.role === "user" ? "bg-brand-500 text-white" : "bg-slate-100 text-slate-800"
-              }`}
-            >
-              {m.text}
-            </div>
-          </div>
-        ))}
-        {sending && <p className="text-xs text-slate-400">Thinking…</p>}
-        <div ref={bottomRef} />
-      </div>
-
-      {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
-
-      <form onSubmit={handleSend} className="flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Type a command…"
-          className="min-w-0 flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-        />
-        <button
-          type="submit"
-          disabled={sending || !draft.trim()}
-          className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+    <div className="mb-3">
+      <button
+        onClick={() => onToggle(isOpen ? null : id)}
+        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left shadow-card transition-colors ${
+          isOpen ? "bg-brand-500 text-white" : "bg-white text-slate-900"
+        }`}
+      >
+        <span className="text-lg leading-none">{icon}</span>
+        <span className="flex-1 text-sm font-semibold">{title}</span>
+        <span
+          className={`text-lg leading-none transition-transform ${isOpen ? "rotate-180" : ""}`}
         >
-          Send
-        </button>
-      </form>
+          ⌄
+        </span>
+      </button>
+      {isOpen && <div className="mt-2">{children}</div>}
     </div>
   );
 }
@@ -778,6 +707,7 @@ function EventForm({ onCreated }) {
 export default function AdminPage() {
   const router = useRouter();
   const { profile, loading: profileLoading } = useProfile();
+  const [activeSection, setActiveSection] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [events, setEvents] = useState([]);
   const [links, setLinks] = useState([]);
@@ -823,53 +753,72 @@ export default function AdminPage() {
     return null;
   }
 
-  // One running index across every section's rows, so the entrance cascade
-  // reads as a single top-to-bottom sequence instead of each list
-  // restarting its own stagger from zero.
-  let rowIndex = 0;
-
   return (
     <AppShell title="Admin">
-      <Section title="Ask the assistant">
-        <AssistantPanel onAction={refresh} />
-      </Section>
-
-      <Section title="Post a reminder">
+      <AdminSection
+        id="reminders"
+        title="Post a reminder"
+        icon="📣"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
         <ReminderForm onCreated={refresh} userId={profile.id} />
         <ul className="space-y-2">
-          {reminders.map((r) => (
-            <ReminderRow
-              key={r.id}
-              reminder={r}
-              index={rowIndex++}
-              onChanged={refresh}
-              userId={profile.id}
-            />
+          {reminders.map((r, i) => (
+            <ReminderRow key={r.id} reminder={r} index={i} onChanged={refresh} userId={profile.id} />
           ))}
         </ul>
-      </Section>
+      </AdminSection>
 
-      <Section title="Add a calendar event">
+      <AdminSection
+        id="events"
+        title="Add a calendar event"
+        icon="📅"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
         <EventForm onCreated={refresh} />
         <ul className="space-y-2">
-          {events.map((e) => (
-            <EventRow key={e.id} event={e} index={rowIndex++} onChanged={refresh} />
+          {events.map((e, i) => (
+            <EventRow key={e.id} event={e} index={i} onChanged={refresh} />
           ))}
         </ul>
-      </Section>
+      </AdminSection>
 
-      <Section title="Manage links">
+      <AdminSection
+        id="links"
+        title="Manage links"
+        icon="🔗"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
         <LinkForm onCreated={refresh} />
         <ul className="space-y-2">
-          {links.map((l) => (
-            <LinkRow key={l.id} link={l} index={rowIndex++} onChanged={refresh} />
+          {links.map((l, i) => (
+            <LinkRow key={l.id} link={l} index={i} onChanged={refresh} />
           ))}
         </ul>
-      </Section>
+      </AdminSection>
 
-      <Section title="Gifts & donations">
+      <AdminSection
+        id="gifts"
+        title="Gifts & donations"
+        icon="🎁"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
         <GiftsAdminSection />
-      </Section>
+      </AdminSection>
+
+      <AdminSection
+        id="invite"
+        title="Invite families"
+        icon="✉️"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        <InviteFamiliesSection />
+      </AdminSection>
     </AppShell>
   );
 }

@@ -1,8 +1,7 @@
 # The Village — Classroom Parent App
 
 A mobile-first web app (installable to your phone's home screen, no app
-store needed) for our classroom family. Built with Next.js 14, Supabase,
-and Claude.
+store needed) for our classroom family. Built with Next.js 14 and Supabase.
 
 **What's in it:**
 - **Home** — this week's quick reminders + upcoming events at a glance
@@ -27,9 +26,7 @@ and Claude.
   get alerted the moment a new reminder or chat message goes out, even with
   the app closed
 - **Admin** — the room parent gets an admin screen to post reminders and
-  events by hand, *or* just type what she wants in plain English to an
-  embedded Claude assistant ("remind everyone about picture day Friday")
-  and it makes the update for her
+  events, manage links, and invite new families by email
 - **Gifts & donations** — the admin starts a collection (a holiday gift,
   teacher appreciation week), parents chip in with a simple amount + note,
   and funds route directly to whoever's collecting via Stripe Connect — this
@@ -43,8 +40,8 @@ joining:
 - **Parent code** — share this with classroom families. Anyone with it can
   create an account and see reminders/calendar/chat.
 - **Admin code** — gives whoever signs up with it the room-parent admin
-  role (access to `/admin`, including the AI assistant). Keep this one
-  private — usually you'll use it yourself to create the first account.
+  role (access to `/admin`). Keep this one private — usually you'll use it
+  yourself to create the first account.
 
 Codes are plain environment variables (`CLASSROOM_PARENT_INVITE_CODE`,
 `CLASSROOM_ADMIN_INVITE_CODE`), not stored in the database, so rotating
@@ -65,22 +62,13 @@ them just means updating an env var and redeploying.
    key, and `service_role` secret key into your env vars (see
    `.env.example`).
 
-### 2. Anthropic (the AI assistant)
-
-Create an API key at [console.anthropic.com](https://console.anthropic.com)
-and set `ANTHROPIC_API_KEY`. Usage is billed per request to your Anthropic
-account — for a classroom-sized assistant used a few times a week this
-costs pennies, but keep an eye on it. If this key is left unset, the rest
-of the app still works fine — the admin just uses the plain forms instead
-of the chat assistant.
-
-### 3. Resend (weekly reminder emails)
+### 2. Resend (weekly reminder emails + family invite emails)
 
 1. Create a free account at [resend.com](https://resend.com).
 2. Verify a sending domain (or use their test domain while developing).
 3. Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 
-### 4. Web Push (phone notifications)
+### 3. Web Push (phone notifications)
 
 Run `npx web-push generate-vapid-keys` locally — it prints a public and
 private key pair, no account/signup needed. Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
@@ -92,7 +80,7 @@ Note: on iPhone, push notifications only work once the app has been added
 to the Home Screen (regular Safari tabs can't receive them) and requires
 iOS 16.4+.
 
-### 5. Stripe (gifts & donations)
+### 4. Stripe (gifts & donations)
 
 This app is a payments *facilitator*, not a money transmitter — it never
 holds funds. Every gift routes through Stripe Connect straight to whoever's
@@ -126,7 +114,7 @@ Note: bank-transfer (ACH) gifts take a few business days to actually clear,
 even though the parent's part is done in a few taps — the running total
 only counts a gift once Stripe confirms it, not the moment someone submits.
 
-### 6. Local development
+### 5. Local development
 
 ```bash
 npm install
@@ -175,15 +163,15 @@ Visit `/signup` and create the first account using your admin invite code.
   attachments (uploaded to the `chat-images` Storage bucket)
 - `app/directory` — every parent's contact info + self-service photo/phone/
   child name editing (`app/api/profile`) and the notifications toggle
-- `app/admin` — room-parent-only: reminder/event forms + the AI assistant
+- `app/admin` — room-parent-only: reminder/event/link forms, gift payout
+  setup, and inviting new families by email
 - `app/api/auth/signup` — validates invite code, creates the account
 - `app/api/reminders`, `app/api/events` — admin-only create/edit/delete
   (parents can also post/delete their own birthday-type events directly,
   enforced by Row Level Security rather than these routes)
-- `app/api/admin/assistant` — Claude tool-use loop that can create, list,
-  edit, and delete reminders/events on the admin's behalf (see
-  `lib/assistantTools.js` for exactly what it's allowed to touch — nothing
-  outside those two tables)
+- `app/api/admin/invite-families` — creates a family record per invited
+  group and emails each address a signup link (via Resend) prefilled with
+  the classroom and family invite codes
 - `app/api/messages` — posts a chat message server-side (rather than a
   direct client insert) so it has a hook to fan out push notifications
 - `app/api/push/subscribe` — saves/removes a device's push subscription
@@ -206,13 +194,8 @@ Visit `/signup` and create the first account using your admin invite code.
 
 ## Notes before you invite families
 
-- The app icon (`public/icons/icon.svg`) is a placeholder — swap in real
-  artwork before sharing widely.
 - Chat has no moderation tooling yet (no delete/report) — it's a small
   trusted group, but keep that in mind.
-- The admin assistant can only read/write the `reminders` and `events`
-  tables — it has no access to parent accounts, chat messages, or anything
-  else in the database.
 - Every parent's email/phone/photo is visible to every other signed-in
   parent (that's the point of the Directory) — there's no per-field privacy
   toggle in this version.

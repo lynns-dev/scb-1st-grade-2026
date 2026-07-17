@@ -25,6 +25,70 @@ function MessageImage({ src }) {
   );
 }
 
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+function MessageReactions({ reactions, currentUserId, align, onToggle }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const grouped = {};
+  for (const r of reactions || []) {
+    if (!grouped[r.emoji]) grouped[r.emoji] = [];
+    grouped[r.emoji].push(r.user_id);
+  }
+  const entries = Object.entries(grouped);
+
+  return (
+    <div className={`mt-1 flex flex-wrap items-center gap-1 ${align === "right" ? "justify-end" : ""}`}>
+      {entries.map(([emoji, userIds]) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => onToggle(emoji)}
+          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
+            userIds.includes(currentUserId)
+              ? "bg-brand-100 text-brand-700"
+              : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          <span>{emoji}</span>
+          <span>{userIds.length}</span>
+        </button>
+      ))}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setPickerOpen((v) => !v)}
+          className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-500"
+          aria-label="Add reaction"
+        >
+          +
+        </button>
+        {pickerOpen && (
+          <div
+            className={`absolute bottom-full z-10 mb-1 flex gap-0.5 rounded-full bg-white p-1 shadow-card ${
+              align === "right" ? "right-0" : "left-0"
+            }`}
+          >
+            {QUICK_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => {
+                  onToggle(emoji);
+                  setPickerOpen(false);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-base hover:bg-slate-100"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ChatRoomPage({ params }) {
   const roomId = params.roomId;
   const { profile } = useProfile();
@@ -61,7 +125,7 @@ export default function ChatRoomPage({ params }) {
         supabase
           .from("messages")
           .select(
-            "id, body, image_url, created_at, user_id, profiles ( full_name, avatar_url, families ( child_name ) )"
+            "id, body, image_url, created_at, user_id, profiles ( full_name, avatar_url, families ( child_name ) ), message_reactions ( id, emoji, user_id )"
           )
           .eq("room_id", roomId)
           .order("created_at", { ascending: true })
@@ -90,8 +154,56 @@ export default function ChatRoomPage({ params }) {
             .eq("id", payload.new.user_id)
             .single();
 
-          setMessages((prev) => [...prev, { ...payload.new, profiles: data || null }]);
+          setMessages((prev) => [
+            ...prev,
+            { ...payload.new, profiles: data || null, message_reactions: [] },
+          ]);
           if (payload.new.user_id !== profile.id) markRead();
+        }
+      )
+      // No room_id column on message_reactions to filter by, so this
+      // listens broadly and just ignores anything for a message we're not
+      // currently showing.
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_reactions" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.id !== payload.new.message_id) return m;
+              const existing = m.message_reactions || [];
+              // Our own optimistic insert already added a temp row for this
+              // user+emoji — replace it with the real one instead of adding
+              // a second entry when the realtime echo arrives.
+              const tempIdx = existing.findIndex(
+                (r) =>
+                  String(r.id).startsWith("temp-") &&
+                  r.user_id === payload.new.user_id &&
+                  r.emoji === payload.new.emoji
+              );
+              if (tempIdx !== -1) {
+                const next = [...existing];
+                next[tempIdx] = payload.new;
+                return { ...m, message_reactions: next };
+              }
+              if (existing.some((r) => r.id === payload.new.id)) return m;
+              return { ...m, message_reactions: [...existing, payload.new] };
+            })
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "message_reactions" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.map((m) => ({
+              ...m,
+              message_reactions: (m.message_reactions || []).filter(
+                (r) => r.id !== payload.old.id
+              ),
+            }))
+          );
         }
       )
       .subscribe();
@@ -101,6 +213,72 @@ export default function ChatRoomPage({ params }) {
       supabase.removeChannel(channel);
     };
   }, [roomId, profile?.id]);
+
+  async function toggleReaction(messageId, emoji) {
+    if (!profile?.id) return;
+    const supabase = createClient();
+    const message = messages.find((m) => m.id === messageId);
+    const existing = (message?.message_reactions || []).find(
+      (r) => r.emoji === emoji && r.user_id === profile.id
+    );
+
+    if (existing) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id !== messageId
+            ? m
+            : {
+                ...m,
+                message_reactions: (m.message_reactions || []).filter((r) => r.id !== existing.id),
+              }
+        )
+      );
+      await supabase.from("message_reactions").delete().eq("id", existing.id);
+    } else {
+      const tempId = `temp-${Date.now()}-${Math.random()}`;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id !== messageId
+            ? m
+            : {
+                ...m,
+                message_reactions: [
+                  ...(m.message_reactions || []),
+                  { id: tempId, emoji, user_id: profile.id },
+                ],
+              }
+        )
+      );
+      const { data, error: insertError } = await supabase
+        .from("message_reactions")
+        .insert({ message_id: messageId, user_id: profile.id, emoji })
+        .select("id, emoji, user_id")
+        .single();
+
+      if (insertError) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id !== messageId
+              ? m
+              : { ...m, message_reactions: (m.message_reactions || []).filter((r) => r.id !== tempId) }
+          )
+        );
+      } else if (data) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id !== messageId
+              ? m
+              : {
+                  ...m,
+                  message_reactions: (m.message_reactions || []).map((r) =>
+                    r.id === tempId ? data : r
+                  ),
+                }
+          )
+        );
+      }
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -206,6 +384,12 @@ export default function ChatRoomPage({ params }) {
                         ⬇ Save photo
                       </a>
                     )}
+                    <MessageReactions
+                      reactions={m.message_reactions}
+                      currentUserId={profile?.id}
+                      align={mine ? "right" : "left"}
+                      onToggle={(emoji) => toggleReaction(m.id, emoji)}
+                    />
                   </div>
                 </div>
               );
