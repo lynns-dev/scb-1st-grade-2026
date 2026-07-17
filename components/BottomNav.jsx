@@ -47,8 +47,8 @@ function Icon({ name }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="22"
-      height="22"
+      width="24"
+      height="24"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.9"
@@ -86,7 +86,7 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
             to one grid column via inline style), so translateX(N * 100%)
             always lands it exactly on column N regardless of item count. */}
         <div
-          className="pointer-events-none absolute left-0 top-2.5 flex justify-center transition-transform duration-300 ease-out"
+          className="pointer-events-none absolute left-0 top-3 flex justify-center transition-transform duration-300 ease-out"
           style={{
             width: `${100 / items.length}%`,
             transform: `translateX(${Math.max(activeIndex, 0) * 100}%)`,
@@ -95,7 +95,7 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
           aria-hidden="true"
         >
           <span
-            className={`h-8 w-8 rounded-full transition-colors duration-300 ${activeColor?.bg || ""}`}
+            className={`h-11 w-11 rounded-full transition-colors duration-300 ${activeColor?.bg || ""}`}
           />
         </div>
 
@@ -104,15 +104,20 @@ export default function BottomNav({ isAdmin, unreadCount = 0 }) {
             const active = pathname?.startsWith(item.href);
             const color = COLORS[item.icon];
             return (
+              /* active:scale-90 gives an immediate press response on tap
+                 (scales down, then eases back on release via the same
+                 transition) so the button feels responsive right away —
+                 separate from the sliding highlight pill above, which only
+                 reflects the currently active route. */
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-200 ${color.fg}`}
+                className={`flex flex-col items-center gap-1 py-3 text-[11px] transition-all duration-150 ease-out active:scale-90 ${color.fg}`}
               >
-                <span className="relative flex h-8 w-8 items-center justify-center">
+                <span className="relative flex h-11 w-11 items-center justify-center">
                   <Icon name={item.icon} />
                   {item.icon === "chat" && unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                    <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}

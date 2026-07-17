@@ -79,7 +79,7 @@ export default function InviteFamiliesSection() {
       </p>
 
       {families.map((family, familyIndex) => (
-        <div key={family.key} className="rounded-2xl bg-white p-4 shadow-card">
+        <div key={family.key} className="animate-fade-in-item rounded-2xl bg-white p-4 shadow-card">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Family {familyIndex + 1}
@@ -97,7 +97,7 @@ export default function InviteFamiliesSection() {
 
           <div className="space-y-2">
             {family.emails.map((email, emailIndex) => (
-              <div key={emailIndex} className="flex gap-2">
+              <div key={emailIndex} className="animate-fade-in-item flex gap-2">
                 <input
                   required
                   type="email"

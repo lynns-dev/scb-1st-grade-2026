@@ -48,7 +48,7 @@ export default function NotificationsPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="mx-auto mb-4 max-w-lg rounded-2xl bg-brand-50 p-4 shadow-card">
+    <div className="animate-fade-in-item mx-auto mb-4 max-w-lg rounded-2xl bg-brand-50 p-4 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-brand-700">🔔 Turn on notifications</p>

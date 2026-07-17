@@ -21,7 +21,7 @@ export default function AccordionSection({ id, title, icon, activeId, onToggle, 
           ⌄
         </span>
       </button>
-      {isOpen && <div className="mt-2">{children}</div>}
+      {isOpen && <div className="mt-2 animate-fade-in-item">{children}</div>}
     </div>
   );
 }
