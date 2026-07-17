@@ -6,6 +6,7 @@ import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { uploadEventImage } from "@/lib/uploadFile";
 import { startOfWeek, addDays, isSameDay } from "@/lib/dateUtils";
+import { EVENT_TYPE_ICONS, INVITE_TYPES } from "@/lib/eventTypes";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
@@ -25,7 +26,8 @@ function groupByMonth(events) {
 
 function EventCard({ event, profile, onDelete, showDateBadge = true, index = 0 }) {
   const start = new Date(event.start_at);
-  const isBirthday = event.event_type === "birthday";
+  const icon = EVENT_TYPE_ICONS[event.event_type];
+  const isInvite = !!icon;
   const mine = event.created_by === profile?.id;
 
   return (
@@ -43,7 +45,7 @@ function EventCard({ event, profile, onDelete, showDateBadge = true, index = 0 }
       )}
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-slate-900">
-          {isBirthday && "🎂 "}
+          {isInvite && `${icon} `}
           {event.title}
         </p>
         <p className="text-xs text-slate-400">
@@ -52,7 +54,7 @@ function EventCard({ event, profile, onDelete, showDateBadge = true, index = 0 }
             : start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
           {event.location ? ` · ${event.location}` : ""}
         </p>
-        {isBirthday && event.profiles?.full_name && (
+        {isInvite && event.profiles?.full_name && (
           <p className="text-xs text-slate-400">Hosted by {event.profiles.full_name}</p>
         )}
         {event.description && <p className="mt-1 text-sm text-slate-500">{event.description}</p>}
@@ -91,8 +93,15 @@ function EventCard({ event, profile, onDelete, showDateBadge = true, index = 0 }
   );
 }
 
-function BirthdayForm({ profile, onCreated, onCancel }) {
-  const [title, setTitle] = useState(profile.child_name ? `${profile.child_name}'s Birthday` : "");
+function defaultTitleFor(type, childName) {
+  if (type === "birthday") return childName ? `${childName}'s Birthday` : "";
+  return "";
+}
+
+function InviteForm({ profile, onCreated, onCancel }) {
+  const [type, setType] = useState("birthday");
+  const [title, setTitle] = useState(defaultTitleFor("birthday", profile.child_name));
+  const [titleTouched, setTitleTouched] = useState(false);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
@@ -102,6 +111,11 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+
+  function handleTypeChange(newType) {
+    setType(newType);
+    if (!titleTouched) setTitle(defaultTitleFor(newType, profile.child_name));
+  }
 
   function handleImagePick(e) {
     const file = e.target.files?.[0];
@@ -138,7 +152,7 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
       image_url: imageUrl,
       start_at: startAt.toISOString(),
       all_day: allDay,
-      event_type: "birthday",
+      event_type: type,
       created_by: profile.id,
     });
 
@@ -150,17 +164,38 @@ function BirthdayForm({ profile, onCreated, onCancel }) {
     onCreated();
   }
 
+  const activeType = INVITE_TYPES.find((t) => t.id === type);
+
   return (
     <form
       onSubmit={handleSubmit}
       className="mb-6 space-y-2 rounded-2xl border border-brand-100 bg-white p-4 shadow-card"
     >
-      <p className="mb-1 text-sm font-semibold text-slate-900">🎂 New birthday invite</p>
+      <p className="mb-1 text-sm font-semibold text-slate-900">{activeType.icon} New invite</p>
+
+      <div className="mb-1 flex gap-1.5">
+        {INVITE_TYPES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => handleTypeChange(t.id)}
+            className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold ${
+              type === t.id ? "bg-brand-500 text-white" : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
       <input
         required
-        placeholder="e.g. Emma's Birthday Party"
+        placeholder={activeType.placeholder}
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitleTouched(true);
+          setTitle(e.target.value);
+        }}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
       />
       <div className="flex gap-2">
@@ -337,7 +372,7 @@ export default function CalendarPage() {
   const { profile } = useProfile();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showBirthdayForm, setShowBirthdayForm] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const [view, setView] = useState("week");
 
   async function refresh() {
@@ -366,21 +401,21 @@ export default function CalendarPage() {
 
   return (
     <AppShell title="Calendar">
-      {profile && !showBirthdayForm && (
+      {profile && !showInviteForm && (
         <button
-          onClick={() => setShowBirthdayForm(true)}
+          onClick={() => setShowInviteForm(true)}
           className="mb-6 w-full rounded-2xl border border-dashed border-brand-200 bg-brand-50 py-3 text-sm font-semibold text-brand-600"
         >
-          🎂 Post a birthday invite
+          🎉 Invite the class (birthday, playdate, or fun event)
         </button>
       )}
 
-      {profile && showBirthdayForm && (
-        <BirthdayForm
+      {profile && showInviteForm && (
+        <InviteForm
           profile={profile}
-          onCancel={() => setShowBirthdayForm(false)}
+          onCancel={() => setShowInviteForm(false)}
           onCreated={() => {
-            setShowBirthdayForm(false);
+            setShowInviteForm(false);
             refresh();
           }}
         />

@@ -11,8 +11,9 @@ store needed) for our classroom family. Built with Next.js 14 and Supabase.
 - **Calendar** — a week view by default (today highlighted, day-by-day, "No
   events" for empty days) with a Month view toggle for looking further out,
   plus a one-tap "Add to Google Calendar" link on every event
-- **Birthday invites** — any parent can post one for their own kid (host,
-  location, RSVP details); it shows up on the shared calendar automatically
+- **Parent invites** — any parent can post a birthday party, playdate, or
+  other fun event (host, location, RSVP details, optional invite image); it
+  shows up on the shared calendar automatically
 - **Chat** — a room list you tap into (like a messaging app); everyone's in
   "Main Chat" by default, plus the admin can spin up extra invite-only rooms
   for specific parents. Photos can be attached to a message and saved from
@@ -155,8 +156,8 @@ Visit `/signup` and create the first account using your admin invite code.
 - `app/(auth)/login`, `app/(auth)/signup` — sign in / join with invite code
 - `app/home` — weekly reminders + upcoming events dashboard
 - `app/calendar` — week/month calendar views (`WeekView`/`MonthView`,
-  sharing an `EventCard`), birthday invite posting, and "Add to Google
-  Calendar" links
+  sharing an `EventCard`), parent-posted invites (birthday, playdate, or
+  fun event — see `lib/eventTypes.js`), and "Add to Google Calendar" links
 - `app/chat` — room list ("Main Chat" + any invite-only rooms the admin
   created via `app/api/chat-rooms`); `app/chat/[roomId]` is the realtime
   message thread (Supabase Realtime) for one room, including photo
@@ -167,8 +168,8 @@ Visit `/signup` and create the first account using your admin invite code.
   setup, and inviting new families by email
 - `app/api/auth/signup` — validates invite code, creates the account
 - `app/api/reminders`, `app/api/events` — admin-only create/edit/delete
-  (parents can also post/delete their own birthday-type events directly,
-  enforced by Row Level Security rather than these routes)
+  (parents can also post/delete their own birthday/playdate/fun-event
+  invites directly, enforced by Row Level Security rather than these routes)
 - `app/api/admin/invite-families` — creates a family record per invited
   group and emails each address a signup link (via Resend) prefilled with
   the classroom and family invite codes

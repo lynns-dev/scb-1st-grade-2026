@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { startOfWeek } from "@/lib/dateUtils";
+import { EVENT_TYPE_ICONS } from "@/lib/eventTypes";
 import AppShell from "@/components/AppShell";
 import Avatar from "@/components/Avatar";
 import Logo from "@/components/Logo";
@@ -270,7 +271,7 @@ export default function HomePage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-slate-900">
-                      {e.event_type === "birthday" && "🎉 "}
+                      {EVENT_TYPE_ICONS[e.event_type] ? `${EVENT_TYPE_ICONS[e.event_type]} ` : ""}
                       {e.title}
                     </p>
                     <p className="truncate text-xs text-slate-400">

@@ -136,7 +136,7 @@ create table if not exists events (
   description text,
   location text,
   image_url text,
-  event_type text not null default 'general' check (event_type in ('general', 'birthday')),
+  event_type text not null default 'general' check (event_type in ('general', 'birthday', 'playdate', 'fun')),
   start_at timestamptz not null,
   end_at timestamptz,
   all_day boolean not null default false,
@@ -147,15 +147,15 @@ create table if not exists events (
 alter table events add column if not exists location text;
 alter table events add column if not exists image_url text;
 alter table events add column if not exists event_type text not null default 'general';
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'events_event_type_check'
-  ) then
-    alter table events add constraint events_event_type_check
-      check (event_type in ('general', 'birthday'));
-  end if;
-end $$;
+
+-- Dropped and recreated unconditionally (rather than "add if missing") so
+-- that re-running this file also widens an existing constraint from an
+-- earlier, narrower version — 'playdate'/'fun' were added alongside
+-- 'birthday' so any parent can invite the class to more than just birthday
+-- parties.
+alter table events drop constraint if exists events_event_type_check;
+alter table events add constraint events_event_type_check
+  check (event_type in ('general', 'birthday', 'playdate', 'fun'));
 
 create table if not exists reminders (
   id uuid primary key default gen_random_uuid(),
@@ -335,17 +335,21 @@ drop policy if exists "events readable by classroom members" on events;
 create policy "events readable by classroom members" on events
   for select to authenticated using (true);
 
--- Any parent can post (or remove) a birthday invite for their own kid —
--- everything else about the shared calendar stays admin-only.
+-- Any parent can post (or remove) their own birthday party, playdate, or
+-- other fun-event invite — everything else about the shared calendar
+-- (event_type = 'general') stays admin-only, created server-side with the
+-- service role via app/api/events.
 drop policy if exists "parents can post their own birthday invites" on events;
-create policy "parents can post their own birthday invites" on events
+drop policy if exists "parents can post their own invites" on events;
+create policy "parents can post their own invites" on events
   for insert to authenticated
-  with check (event_type = 'birthday' and created_by = auth.uid());
+  with check (event_type in ('birthday', 'playdate', 'fun') and created_by = auth.uid());
 
 drop policy if exists "parents can delete their own birthday invites" on events;
-create policy "parents can delete their own birthday invites" on events
+drop policy if exists "parents can delete their own invites" on events;
+create policy "parents can delete their own invites" on events
   for delete to authenticated
-  using (event_type = 'birthday' and created_by = auth.uid());
+  using (event_type in ('birthday', 'playdate', 'fun') and created_by = auth.uid());
 
 drop policy if exists "reminders readable by classroom members" on reminders;
 create policy "reminders readable by classroom members" on reminders
