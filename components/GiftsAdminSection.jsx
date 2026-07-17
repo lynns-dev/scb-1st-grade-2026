@@ -13,7 +13,7 @@ function PayoutAccountStatus({ status, onConnect, connecting }) {
 
   if (status === "ready") {
     return (
-      <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-card">
+      <div className="animate-fade-in-item mb-3 flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-card">
         <div>
           <p className="text-sm font-semibold text-slate-900">✅ Payouts are set up</p>
           <p className="mt-0.5 text-xs text-slate-500">
@@ -32,7 +32,7 @@ function PayoutAccountStatus({ status, onConnect, connecting }) {
   }
 
   return (
-    <div className="mb-3 rounded-2xl bg-white p-4 shadow-card">
+    <div className="animate-fade-in-item mb-3 rounded-2xl bg-white p-4 shadow-card">
       <p className="text-sm font-semibold text-slate-900">🏦 Connect a bank account</p>
       <p className="mt-0.5 text-xs text-slate-500">
         Whoever should receive gifts (you, the teacher, this year&apos;s room parent) needs to link

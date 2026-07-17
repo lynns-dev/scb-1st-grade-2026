@@ -179,7 +179,7 @@ export default function HomePage() {
         {loading ? (
           <SkeletonCards count={2} />
         ) : reminders.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+          <div className="animate-fade-in-item rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
             No reminders posted yet this week.
           </div>
         ) : (
@@ -250,7 +250,7 @@ export default function HomePage() {
         {loading ? (
           <SkeletonCards count={2} />
         ) : events.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+          <div className="animate-fade-in-item rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
             Nothing on the calendar yet.
           </div>
         ) : (

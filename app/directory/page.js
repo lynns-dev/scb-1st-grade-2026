@@ -196,7 +196,7 @@ function InviteCoParent() {
   if (!inviteCode) return null;
 
   return (
-    <div className="mb-6 rounded-2xl bg-white p-4 shadow-card">
+    <div className="animate-fade-in-item mb-6 rounded-2xl bg-white p-4 shadow-card">
       <p className="text-sm font-semibold text-slate-900">Invite your child&apos;s other parent</p>
       <p className="mt-1 text-xs text-slate-500">
         So they get their own login and show up in chat as themselves, instead of a duplicate

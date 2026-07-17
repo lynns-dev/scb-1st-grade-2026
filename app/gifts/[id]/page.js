@@ -107,10 +107,18 @@ function GiftCollectionContent({ params }) {
     );
   }
 
+  // A single running index across every animated block on the page (banner,
+  // stat card, form, contributor list), so the entrance reads as one
+  // top-to-bottom cascade instead of each piece popping in on its own.
+  let cardIndex = 0;
+
   return (
     <AppShell title={collection.title} backHref="/gifts">
       {justGave && (
-        <div className="mb-4 rounded-2xl bg-brand-50 p-4 text-center shadow-card">
+        <div
+          className="animate-fade-in-item mb-4 rounded-2xl bg-brand-50 p-4 text-center shadow-card"
+          style={staggerStyle(cardIndex++)}
+        >
           <p className="text-sm font-semibold text-brand-700">🎉 Thank you!</p>
           <p className="mt-0.5 text-xs text-brand-600">
             Your gift is on its way — it may take a few days to fully clear if you paid by bank
@@ -119,7 +127,10 @@ function GiftCollectionContent({ params }) {
         </div>
       )}
 
-      <div className="mb-4 rounded-2xl bg-white p-4 shadow-card">
+      <div
+        className="animate-fade-in-item mb-4 rounded-2xl bg-white p-4 shadow-card"
+        style={staggerStyle(cardIndex++)}
+      >
         {collection.note && <p className="text-sm text-slate-600">{collection.note}</p>}
         <p className="mt-2 text-lg font-bold text-slate-900">
           {currency(raised)}
@@ -130,7 +141,11 @@ function GiftCollectionContent({ params }) {
       </div>
 
       {!collection.closed_at ? (
-        <form onSubmit={handleSend} className="mb-4 space-y-3 rounded-2xl bg-white p-4 shadow-card">
+        <form
+          onSubmit={handleSend}
+          className="animate-fade-in-item mb-4 space-y-3 rounded-2xl bg-white p-4 shadow-card"
+          style={staggerStyle(cardIndex++)}
+        >
           <div className="flex gap-2">
             {QUICK_AMOUNTS.map((a) => (
               <button
@@ -176,7 +191,10 @@ function GiftCollectionContent({ params }) {
           </button>
         </form>
       ) : (
-        <div className="mb-4 rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400">
+        <div
+          className="animate-fade-in-item mb-4 rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400"
+          style={staggerStyle(cardIndex++)}
+        >
           This collection is closed.
         </div>
       )}
@@ -187,11 +205,11 @@ function GiftCollectionContent({ params }) {
             Who&apos;s given
           </h2>
           <ul className="space-y-2">
-            {contributions.map((c, i) => (
+            {contributions.map((c) => (
               <li
                 key={c.id}
                 className="animate-fade-in-item flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card"
-                style={staggerStyle(i)}
+                style={staggerStyle(cardIndex++)}
               >
                 <Avatar src={c.profiles?.avatar_url} name={c.profiles?.full_name} size={32} />
                 <div className="min-w-0 flex-1">

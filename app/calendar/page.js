@@ -349,7 +349,7 @@ function MonthView({ events, profile, onDelete }) {
 
   if (events.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+      <div className="animate-fade-in-item rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
         No upcoming events yet.
       </div>
     );
