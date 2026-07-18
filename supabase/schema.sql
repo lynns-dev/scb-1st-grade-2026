@@ -87,6 +87,36 @@ insert into classroom_settings (id) values (true) on conflict (id) do nothing;
 
 alter table classroom_settings enable row level security;
 
+-- Shared photo album. Any parent can upload throughout the year (not just
+-- admin — unlike links/reminders/events, this is meant to fill up from
+-- everyone's cameras), and everyone can view/download every photo — tagging
+-- is just to help a parent quickly filter down to their own kid, not an
+-- access-control boundary (same trusted-small-group model as the rest of
+-- the app).
+create table if not exists photos (
+  id uuid primary key default gen_random_uuid(),
+  image_url text not null,
+  caption text,
+  uploaded_by uuid references profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table photos enable row level security;
+
+-- One row per family tagged in a photo — a photo can show more than one
+-- kid, so this is many-to-many rather than a single family_id column on
+-- photos.
+create table if not exists photo_tags (
+  photo_id uuid not null references photos (id) on delete cascade,
+  family_id uuid not null references families (id) on delete cascade,
+  primary key (photo_id, family_id)
+);
+
+alter table photo_tags enable row level security;
+
+create index if not exists photos_created_at_idx on photos (created_at);
+create index if not exists photo_tags_family_idx on photo_tags (family_id);
+
 -- Gifts & donations (Stripe Connect) ----------------------------------------
 -- Real money moves here, routed entirely through Stripe Connect so this app
 -- never takes custody of funds — Stripe is the licensed money transmitter;
@@ -334,6 +364,34 @@ drop policy if exists "settings readable by classroom members" on classroom_sett
 create policy "settings readable by classroom members" on classroom_settings
   for select to authenticated using (true);
 
+-- Every photo is visible to the whole classroom group; any parent can post
+-- one directly (no admin route needed, same as chat images) and only the
+-- person who posted it can remove it — mirrors the birthday-invite pattern.
+drop policy if exists "photos readable by classroom members" on photos;
+create policy "photos readable by classroom members" on photos
+  for select to authenticated using (true);
+
+drop policy if exists "parents can post their own photos" on photos;
+create policy "parents can post their own photos" on photos
+  for insert to authenticated with check (uploaded_by = auth.uid());
+
+drop policy if exists "parents can delete their own photos" on photos;
+create policy "parents can delete their own photos" on photos
+  for delete to authenticated using (uploaded_by = auth.uid());
+
+-- Tags follow whoever uploaded the photo they're attached to (set once at
+-- upload time in this app, but writable any time the underlying photo
+-- still allows it).
+drop policy if exists "photo tags readable by classroom members" on photo_tags;
+create policy "photo tags readable by classroom members" on photo_tags
+  for select to authenticated using (true);
+
+drop policy if exists "uploaders manage tags on their own photos" on photo_tags;
+create policy "uploaders manage tags on their own photos" on photo_tags
+  for all to authenticated
+  using (exists (select 1 from photos p where p.id = photo_tags.photo_id and p.uploaded_by = auth.uid()))
+  with check (exists (select 1 from photos p where p.id = photo_tags.photo_id and p.uploaded_by = auth.uid()));
+
 -- payout_accounts deliberately has no select policy at all — not even a
 -- restricted one. Status is only ever served through the service-role-
 -- backed /api/gifts/connect/status route.
@@ -580,3 +638,22 @@ drop policy if exists "users can delete their own reminder attachments" on stora
 create policy "users can delete their own reminder attachments" on storage.objects
   for delete to authenticated
   using (bucket_id = 'reminder-attachments' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Storage (shared photo album) ------------------------------------------------
+insert into storage.buckets (id, name, public)
+  values ('photos', 'photos', true)
+  on conflict (id) do nothing;
+
+drop policy if exists "photos are publicly accessible" on storage.objects;
+create policy "photos are publicly accessible" on storage.objects
+  for select using (bucket_id = 'photos');
+
+drop policy if exists "users can upload their own photos" on storage.objects;
+create policy "users can upload their own photos" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "users can delete their own photos" on storage.objects;
+create policy "users can delete their own photos" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);

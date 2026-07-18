@@ -79,6 +79,18 @@ const QUICK_LINKS = [
       </>
     ),
   },
+  {
+    href: "/photos",
+    label: "Photos",
+    tint: "accent",
+    icon: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <circle cx="9" cy="11" r="2" />
+        <path d="m21 15-4.5-4.5a2 2 0 0 0-2.8 0L7 17" />
+      </>
+    ),
+  },
 ];
 
 function currency(cents) {

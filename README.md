@@ -36,6 +36,9 @@ store needed) for our classroom family. Built with Next.js 14 and Supabase.
   a quick-link card on Home; it's a plain outbound link (Amazon blocks
   embedding its pages), so this is just a shortcut, not an in-app shopping
   experience
+- **Photos** — any parent can add photos throughout the year and optionally
+  tag which families are in each one; everyone can view, filter to "My
+  family," and download any photo they want
 
 ## How membership works
 
@@ -168,6 +171,10 @@ Visit `/signup` and create the first account using your admin invite code.
   attachments (uploaded to the `chat-images` Storage bucket)
 - `app/directory` — every parent's contact info + self-service photo/phone/
   child name editing (`app/api/profile`) and the notifications toggle
+- `app/photos` — shared photo album; any parent can upload and tag families
+  (a photo can have more than one, via the `photo_tags` join table), filter
+  to "My family," and download any photo (images live in the `photos`
+  Storage bucket)
 - `app/admin` — room-parent-only: reminder/event/link forms, gift payout
   setup, inviting new families by email, and the wishlist link
 - `app/api/auth/signup` — validates invite code, creates the account
