@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { uploadPhoto } from "@/lib/uploadFile";
@@ -147,12 +148,95 @@ function PhotoUploadForm({ profile, families, onUploaded }) {
   );
 }
 
+function PhotoLightbox({ photo, familyNames, mine, onClose, onDelete }) {
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  // Rendered via a portal straight to <body> rather than in place — nested
+  // several levels deep inside AppShell's scrollable <main>, this "fixed"
+  // overlay would otherwise sit inside a stacking context created by an
+  // animation wrapper (will-change: opacity triggers one even at opacity:
+  // 1), which traps its z-index locally and lets normal-flow siblings like
+  // the header paint over it instead of the other way around. A portal
+  // sidesteps that entirely by not being a descendant of any of it.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/90 p-4 safe-top safe-bottom"
+      onClick={onClose}
+    >
+      <div className="flex flex-none items-center justify-end gap-2">
+        <a
+          href={photo.image_url}
+          download
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-lg text-white"
+          aria-label="Save photo"
+        >
+          ⬇
+        </a>
+        {mine && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(photo.id);
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-base font-bold text-white"
+            aria-label="Delete photo"
+          >
+            ×
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-lg text-white"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.image_url}
+          alt={photo.caption || "Classroom photo"}
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-full max-w-full rounded-xl object-contain"
+        />
+      </div>
+
+      {(photo.caption || familyNames.length > 0) && (
+        <div
+          className="flex-none pt-2 text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {photo.caption && <p className="text-sm text-white/90">{photo.caption}</p>}
+          {familyNames.length > 0 && (
+            <p className="mt-0.5 text-xs text-white/60">{familyNames.join(", ")}</p>
+          )}
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
 export default function PhotosPage() {
   const { profile } = useProfile();
   const [photos, setPhotos] = useState([]);
   const [families, setFamilies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   async function refresh() {
     const supabase = createClient();
@@ -233,7 +317,18 @@ export default function PhotosPage() {
 
             return (
               <div key={p.id} className="animate-fade-in-item" style={staggerStyle(i)}>
-                <div className="group relative aspect-square overflow-hidden rounded-2xl bg-slate-100 shadow-card">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPreviewPhoto(p)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setPreviewPhoto(p);
+                    }
+                  }}
+                  className="group relative aspect-square overflow-hidden rounded-2xl bg-slate-100 shadow-card"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.image_url}
@@ -245,6 +340,7 @@ export default function PhotosPage() {
                     download
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm text-brand-600 shadow-card"
                     aria-label="Save photo"
                   >
@@ -252,7 +348,11 @@ export default function PhotosPage() {
                   </a>
                   {mine && (
                     <button
-                      onClick={() => handleDelete(p.id)}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(p.id);
+                      }}
                       className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-xs font-bold text-red-500 shadow-card"
                       aria-label="Delete photo"
                     >
@@ -269,6 +369,21 @@ export default function PhotosPage() {
             );
           })}
         </div>
+      )}
+
+      {previewPhoto && (
+        <PhotoLightbox
+          photo={previewPhoto}
+          familyNames={(previewPhoto.photo_tags || [])
+            .map((t) => t.families?.child_name)
+            .filter(Boolean)}
+          mine={previewPhoto.uploaded_by === profile?.id}
+          onClose={() => setPreviewPhoto(null)}
+          onDelete={(id) => {
+            handleDelete(id);
+            setPreviewPhoto(null);
+          }}
+        />
       )}
     </AppShell>
   );
