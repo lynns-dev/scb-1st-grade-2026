@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withApiError } from "@/lib/apiError";
 
-// Anyone can call this route, but it only ever creates an account when the
-// supplied invite code matches one of the two codes the room admin shares
-// with classroom families (a plain parent code, and a separate admin code
-// for the room parent). No public signup without a valid code.
+// Anyone can call this route, but it only ever creates an account with a
+// valid credential: either the classroom invite code the room admin shares
+// with families (a plain parent code, and a separate admin code for the
+// room parent), or a family code from an existing member of that family —
+// the family code is itself proof of an invite (only ever handed out by
+// someone who already joined), so a co-parent using one of those links
+// shouldn't also have to track down the separate classroom code. No public
+// signup without one of the two.
 export const POST = withApiError(async (request) => {
   const body = await request.json().catch(() => null);
   if (!body) {
@@ -14,7 +18,7 @@ export const POST = withApiError(async (request) => {
 
   const { email, password, fullName, childName, phone, inviteCode, familyCode } = body;
 
-  if (!email || !password || !fullName || !inviteCode) {
+  if (!email || !password || !fullName || (!inviteCode && !familyCode)) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -25,8 +29,12 @@ export const POST = withApiError(async (request) => {
     );
   }
 
+  // Joining an existing family via its code always makes you a parent —
+  // admin accounts only ever come from the separate admin invite code.
   let role;
-  if (inviteCode === process.env.CLASSROOM_ADMIN_INVITE_CODE) {
+  if (familyCode) {
+    role = "parent";
+  } else if (inviteCode === process.env.CLASSROOM_ADMIN_INVITE_CODE) {
     role = "admin";
   } else if (inviteCode === process.env.CLASSROOM_PARENT_INVITE_CODE) {
     role = "parent";

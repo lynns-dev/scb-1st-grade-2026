@@ -128,7 +128,9 @@ function SignupForm() {
         <Logo size={56} className="mx-auto mb-3 block rounded-2xl shadow-card" />
         <h1 className="text-3xl font-bold text-slate-900">Join the classroom</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Ask your room parent for the invite code.
+          {form.familyCode.trim()
+            ? "You're joining as a co-parent — no invite code needed."
+            : "Ask your room parent for the invite code."}
         </p>
       </div>
 
@@ -239,15 +241,17 @@ function SignupForm() {
             autoComplete="new-password"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Invite code</label>
-          <input
-            required
-            value={form.inviteCode}
-            onChange={update("inviteCode")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
+        {!form.familyCode.trim() && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Invite code</label>
+            <input
+              required
+              value={form.inviteCode}
+              onChange={update("inviteCode")}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
+        )}
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
