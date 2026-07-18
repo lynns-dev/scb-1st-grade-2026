@@ -7,10 +7,11 @@ import { useUnreadCounts } from "@/lib/useUnreadCounts";
 import BottomNav from "./BottomNav";
 import InstallPrompt from "./InstallPrompt";
 import NotificationsPrompt from "./NotificationsPrompt";
+import LoadingScreen from "./LoadingScreen";
 
 export default function AppShell({ title, backHref, children }) {
   const router = useRouter();
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const { total: unreadTotal } = useUnreadCounts();
 
   async function handleSignOut() {
@@ -18,6 +19,10 @@ export default function AppShell({ title, backHref, children }) {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  if (profileLoading) {
+    return <LoadingScreen />;
   }
 
   // A fixed-position bottom nav visually detaches and "scrolls with" the

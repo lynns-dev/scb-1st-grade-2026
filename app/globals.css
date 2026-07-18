@@ -80,9 +80,35 @@ button {
   will-change: opacity, transform;
 }
 
+/* First-load splash: a gentle bounce + squash/stretch on the logo, like it's
+   settling in — loops while the very first profile fetch of the session is
+   in flight (see components/LoadingScreen.jsx). The squash on landing (scaleY
+   dipping below 1 as scaleX rises above it) is what reads as "cute" rather
+   than a plain bob up and down. */
+@keyframes bounceSoft {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  30% {
+    transform: translateY(-14px) scale(0.97, 1.03);
+  }
+  50% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
+  70% {
+    transform: translateY(-4px) scale(0.98, 1.02);
+  }
+}
+
+.animate-bounce-soft {
+  animation: bounceSoft 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
-  .animate-fade-in-item {
+  .animate-fade-in-item,
+  .animate-bounce-soft {
     animation: none;
   }
 }
