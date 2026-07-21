@@ -5,24 +5,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { googleCalendarUrl } from "@/lib/googleCalendarLink";
 import { uploadEventImage } from "@/lib/uploadFile";
-import { startOfWeek, addDays, isSameDay } from "@/lib/dateUtils";
+import { startOfMonth, addMonths } from "@/lib/dateUtils";
 import { EVENT_TYPE_ICONS, INVITE_TYPES } from "@/lib/eventTypes";
 import AppShell from "@/components/AppShell";
 import { SkeletonCards } from "@/components/Skeleton";
 import { staggerStyle } from "@/lib/stagger";
-
-function groupByMonth(events) {
-  const groups = new Map();
-  for (const event of events) {
-    const key = new Date(event.start_at).toLocaleDateString(undefined, {
-      month: "long",
-      year: "numeric",
-    });
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(event);
-  }
-  return groups;
-}
 
 function EventCard({ event, profile, onDelete, showDateBadge = true, index = 0 }) {
   const start = new Date(event.start_at);
@@ -274,98 +261,53 @@ function InviteForm({ profile, onCreated, onCancel }) {
   );
 }
 
-function WeekView({ events, profile, onDelete }) {
-  const todayWeekStart = startOfWeek(new Date());
-  const [weekStart, setWeekStart] = useState(todayWeekStart);
-  const today = new Date();
-  const canGoBack = weekStart.getTime() > todayWeekStart.getTime();
+function MonthView({ events, profile, onDelete }) {
+  const todayMonthStart = startOfMonth(new Date());
+  const [monthStart, setMonthStart] = useState(todayMonthStart);
+  const canGoBack = monthStart.getTime() > todayMonthStart.getTime();
+  const nextMonthStart = addMonths(monthStart, 1);
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const weekEnd = days[6];
-  const label =
-    weekStart.getMonth() === weekEnd.getMonth()
-      ? `Week of ${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
-      : `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  const monthEvents = events.filter((e) => {
+    const t = new Date(e.start_at).getTime();
+    return t >= monthStart.getTime() && t < nextMonthStart.getTime();
+  });
+
+  const label = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between rounded-xl bg-slate-100 px-2 py-2.5">
         <button
-          onClick={() => canGoBack && setWeekStart(addDays(weekStart, -7))}
+          onClick={() => canGoBack && setMonthStart(addMonths(monthStart, -1))}
           disabled={!canGoBack}
           className="px-2 text-lg text-slate-400 disabled:opacity-30"
-          aria-label="Previous week"
+          aria-label="Previous month"
         >
           ‹
         </button>
         <span className="text-sm font-semibold text-slate-700">{label}</span>
         <button
-          onClick={() => setWeekStart(addDays(weekStart, 7))}
+          onClick={() => setMonthStart(addMonths(monthStart, 1))}
           className="px-2 text-lg text-slate-400"
-          aria-label="Next week"
+          aria-label="Next month"
         >
           ›
         </button>
       </div>
 
-      {(() => {
-        let globalIndex = 0;
-        return days.map((day) => {
-          const dayEvents = events.filter((e) => isSameDay(new Date(e.start_at), day));
-          const isToday = isSameDay(day, today);
-
-          return (
-            <div key={day.toISOString()} className={`mb-3 rounded-2xl p-3 ${isToday ? "bg-brand-50" : ""}`}>
-              <p className={`mb-2 text-sm font-bold ${isToday ? "text-brand-700" : "text-slate-900"}`}>
-                {day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-                {isToday && <span className="ml-1.5 text-[10px] font-semibold uppercase text-brand-500">Today</span>}
-              </p>
-              {dayEvents.length === 0 ? (
-                <p className="text-xs text-slate-400">No events</p>
-              ) : (
-                <ul className="space-y-2">
-                  {dayEvents.map((e) => (
-                    <EventCard
-                      key={e.id}
-                      event={e}
-                      profile={profile}
-                      onDelete={onDelete}
-                      showDateBadge={false}
-                      index={globalIndex++}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        });
-      })()}
+      {monthEvents.length === 0 ? (
+        <div className="animate-fade-in-item rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+          No events this month.
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {monthEvents.map((e, i) => (
+            <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} index={i} />
+          ))}
+        </ul>
+      )}
     </div>
   );
-}
-
-function MonthView({ events, profile, onDelete }) {
-  const groups = groupByMonth(events);
-
-  if (events.length === 0) {
-    return (
-      <div className="animate-fade-in-item rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
-        No upcoming events yet.
-      </div>
-    );
-  }
-
-  let globalIndex = 0;
-  return Array.from(groups.entries()).map(([month, monthEvents]) => (
-    <section key={month} className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">{month}</h2>
-      <ul className="space-y-3">
-        {monthEvents.map((e) => (
-          <EventCard key={e.id} event={e} profile={profile} onDelete={onDelete} index={globalIndex++} />
-        ))}
-      </ul>
-    </section>
-  ));
 }
 
 export default function CalendarPage() {
@@ -373,7 +315,6 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInviteForm, setShowInviteForm] = useState(false);
-  const [view, setView] = useState("week");
 
   async function refresh() {
     const supabase = createClient();
@@ -382,7 +323,7 @@ export default function CalendarPage() {
       .select(
         "id, title, description, location, image_url, event_type, start_at, end_at, all_day, created_by, profiles ( full_name )"
       )
-      .gte("start_at", startOfWeek(new Date()).toISOString())
+      .gte("start_at", startOfMonth(new Date()).toISOString())
       .order("start_at", { ascending: true });
 
     setEvents(data || []);
@@ -421,24 +362,8 @@ export default function CalendarPage() {
         />
       )}
 
-      <div className="mb-4 flex rounded-xl bg-slate-100 p-1">
-        {["week", "month"].map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`flex-1 rounded-lg py-1.5 text-sm font-semibold capitalize ${
-              view === v ? "bg-white text-brand-600 shadow-sm" : "text-slate-500"
-            }`}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
-
       {loading ? (
         <SkeletonCards count={4} />
-      ) : view === "week" ? (
-        <WeekView events={events} profile={profile} onDelete={handleDelete} />
       ) : (
         <MonthView events={events} profile={profile} onDelete={handleDelete} />
       )}

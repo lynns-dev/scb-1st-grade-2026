@@ -11,9 +11,10 @@ store needed) for our classroom family. Built with Next.js 14 and Supabase.
 - **Scheduled reminders** — the admin can post a reminder immediately or
   schedule it for a future date/time; it stays hidden (no push, no email)
   until then, so she can prep announcements ahead of time
-- **Calendar** — a week view by default (today highlighted, day-by-day, "No
-  events" for empty days) with a Month view toggle for looking further out,
-  plus a one-tap "Add to Google Calendar" link on every event
+- **Calendar** — one simple month view (no week/month toggle to think
+  about), starting on the current month with a "‹ ›" to page forward to
+  future months (can't page before the current month), plus a one-tap
+  "Add to Google Calendar" link on every event
 - **Parent invites** — any parent can post a birthday party, playdate, or
   other fun event (host, location, RSVP details, optional invite image); it
   shows up on the shared calendar automatically
@@ -165,9 +166,10 @@ Visit `/signup` and create the first account using your admin invite code.
 - `app/(auth)/login`, `app/(auth)/signup` — sign in / join with invite code
 - `app/home` — intentionally minimal landing screen: greeting + this
   week's reminders + upcoming events, nothing else
-- `app/calendar` — week/month calendar views (`WeekView`/`MonthView`,
-  sharing an `EventCard`), parent-posted invites (birthday, playdate, or
-  fun event — see `lib/eventTypes.js`), and "Add to Google Calendar" links
+- `app/calendar` — single `MonthView` (current month, pages forward only)
+  built on a shared `EventCard`, parent-posted invites (birthday, playdate,
+  or fun event — see `lib/eventTypes.js`), and "Add to Google Calendar"
+  links
 - `app/chat` — room list ("Main Chat" + any invite-only rooms the admin
   created via `app/api/chat-rooms`); `app/chat/[roomId]` is the realtime
   message thread (Supabase Realtime) for one room, including photo
