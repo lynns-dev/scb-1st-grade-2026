@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { isIOS, isStandalone } from "@/lib/platform";
 import { isPushSupported, getPushSubscription, subscribeToPush } from "@/lib/pushClient";
 
-const DISMISS_KEY = "notifications-prompt-dismissed";
+const DISMISS_KEY = "notifications-prompt-dismissed-until";
+const SNOOZE_DAYS = 7;
 
 // Surfaces the "turn on notifications" ask automatically, right after
 // signup or the first time someone opens the app — instead of leaving it
@@ -20,7 +21,8 @@ export default function NotificationsPrompt() {
   useEffect(() => {
     if (!isPushSupported()) return;
     if (isIOS() && !isStandalone()) return;
-    if (localStorage.getItem(DISMISS_KEY)) return;
+    const dismissedUntil = Number(localStorage.getItem(DISMISS_KEY));
+    if (dismissedUntil && Date.now() < dismissedUntil) return;
     if (typeof Notification !== "undefined" && Notification.permission !== "default") return;
 
     getPushSubscription().then((sub) => {
@@ -28,8 +30,12 @@ export default function NotificationsPrompt() {
     });
   }, []);
 
+  // "Not now" snoozes for a week rather than dismissing forever — someone
+  // who's just busy in the moment isn't the same as someone who's decided
+  // they don't want notifications, and the latter can already say no
+  // permanently via the browser's own permission prompt.
   function dismiss() {
-    localStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(DISMISS_KEY, String(Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000));
     setVisible(false);
   }
 
