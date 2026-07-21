@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/useProfile";
 import { uploadAvatar, uploadChildPhoto } from "@/lib/uploadFile";
@@ -237,24 +238,65 @@ function LinksList({ links }) {
   );
 }
 
+function MoreLinks({ wishlistUrl }) {
+  const items = [
+    { key: "gifts", href: "/gifts", icon: "🎁", label: "Gifts & donations", external: false },
+    { key: "photos", href: "/photos", icon: "📷", label: "Photos", external: false },
+    ...(wishlistUrl
+      ? [{ key: "wishlist", href: wishlistUrl, icon: "🛍️", label: "Wishlist", external: true }]
+      : []),
+  ];
+
+  return (
+    <ul className="space-y-2">
+      {items.map((item, i) => {
+        const row = (
+          <span className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-card">
+            <span className="flex items-center gap-2 text-sm font-medium text-slate-800">
+              <span className="text-lg leading-none">{item.icon}</span>
+              {item.label}
+            </span>
+            <span className="flex-none text-brand-600">{item.external ? "↗" : "›"}</span>
+          </span>
+        );
+
+        return (
+          <li key={item.key} className="animate-fade-in-item" style={staggerStyle(i)}>
+            {item.external ? (
+              <a href={item.href} target="_blank" rel="noopener noreferrer">
+                {row}
+              </a>
+            ) : (
+              <Link href={item.href}>{row}</Link>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function DirectoryPage() {
   const { profile } = useProfile();
   const [families, setFamilies] = useState([]);
   const [links, setLinks] = useState([]);
+  const [wishlistUrl, setWishlistUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("families");
 
   async function refresh() {
     const supabase = createClient();
-    const [{ data: familyData }, { data: linkData }] = await Promise.all([
+    const [{ data: familyData }, { data: linkData }, { data: settingsData }] = await Promise.all([
       supabase
         .from("families")
         .select("id, child_name, child_avatar_url, profiles ( id, full_name, email, phone, avatar_url )")
         .order("child_name", { ascending: true }),
       supabase.from("links").select("id, title, url").order("created_at", { ascending: true }),
+      supabase.from("classroom_settings").select("wishlist_url").eq("id", true).single(),
     ]);
     setFamilies(familyData || []);
     setLinks(linkData || []);
+    setWishlistUrl(settingsData?.wishlist_url || "");
     setLoading(false);
   }
 
@@ -320,6 +362,16 @@ export default function DirectoryPage() {
           <LinksList links={links} />
         </AccordionSection>
       )}
+
+      <AccordionSection
+        id="more"
+        title="Gifts & photos"
+        icon="✨"
+        activeId={activeSection}
+        onToggle={setActiveSection}
+      >
+        <MoreLinks wishlistUrl={wishlistUrl} />
+      </AccordionSection>
 
       <AccordionSection
         id="my-info"

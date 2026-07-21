@@ -4,7 +4,10 @@ A mobile-first web app (installable to your phone's home screen, no app
 store needed) for our classroom family. Built with Next.js 14 and Supabase.
 
 **What's in it:**
-- **Home** — this week's quick reminders + upcoming events at a glance
+- **Home** — deliberately minimal so it doesn't overwhelm less tech-savvy
+  parents: just a name/photo greeting, this week's reminders, and upcoming
+  events. Everything else (Gifts, Photos, Wishlist) lives one tap away in
+  Directory instead of being crammed onto the landing screen.
 - **Scheduled reminders** — the admin can post a reminder immediately or
   schedule it for a future date/time; it stays hidden (no push, no email)
   until then, so she can prep announcements ahead of time
@@ -33,9 +36,8 @@ store needed) for our classroom family. Built with Next.js 14 and Supabase.
   and funds route directly to whoever's collecting via Stripe Connect — this
   app never holds the money itself
 - **Wishlist** — the admin can set an Amazon (or any) wishlist link, shown as
-  a quick-link card on Home; it's a plain outbound link (Amazon blocks
-  embedding its pages), so this is just a shortcut, not an in-app shopping
-  experience
+  a link in Directory; it's a plain outbound link (Amazon blocks embedding
+  its pages), so this is just a shortcut, not an in-app shopping experience
 - **Photos** — any parent can add photos throughout the year and optionally
   tag which families are in each one; everyone can view, filter to "My
   family," and download any photo they want
@@ -161,7 +163,8 @@ Visit `/signup` and create the first account using your admin invite code.
 ## Structure
 
 - `app/(auth)/login`, `app/(auth)/signup` — sign in / join with invite code
-- `app/home` — weekly reminders + upcoming events dashboard
+- `app/home` — intentionally minimal landing screen: greeting + this
+  week's reminders + upcoming events, nothing else
 - `app/calendar` — week/month calendar views (`WeekView`/`MonthView`,
   sharing an `EventCard`), parent-posted invites (birthday, playdate, or
   fun event — see `lib/eventTypes.js`), and "Add to Google Calendar" links
@@ -170,7 +173,9 @@ Visit `/signup` and create the first account using your admin invite code.
   message thread (Supabase Realtime) for one room, including photo
   attachments (uploaded to the `chat-images` Storage bucket)
 - `app/directory` — every parent's contact info + self-service photo/phone/
-  child name editing (`app/api/profile`) and the notifications toggle
+  child name editing (`app/api/profile`), the notifications toggle, and
+  links out to Gifts, Photos, and the Wishlist (kept off Home to keep the
+  landing screen simple)
 - `app/photos` — shared photo album; any parent can upload and tag families
   (a photo can have more than one, via the `photo_tags` join table), filter
   to "My family," and download any photo (images live in the `photos`
